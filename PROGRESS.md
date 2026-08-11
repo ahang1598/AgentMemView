@@ -82,3 +82,28 @@
 - [x] PROGRESS.md 记录 M2-01 ~ M2-12
 
 偏差记录（M2）：(1) fixtures 按协议文档构造而非真实抓包（本地无 agent 运行环境）；(2) MCP 用原生 JSON-RPC 而非官方 SDK；(3) MCP HTTP 传输由 bin --http 预留而非挂载 core :8620/mcp（避免 core→mcp 循环依赖）；(4) init 非交互；(5) SSE 写回时机改为流 flush（修复 capture 为空的时序缺陷）。
+
+- [2026-08-11] M3-01 DONE | ui 测试全绿 | Vite + React 19 + TS strict 脚手架；tokens.css 双主题（浅/深）全部必需变量；scan-rules.mjs 三项扫描（emoji/硬编码色/占位文案）零命中。
+- [2026-08-11] M3-02 DONE | api 3 + sse 2 用例全绿 | typed ApiClient（ApiError 携带 status）；useEventStream 断线重连携 since= 重放且去重；factory 用 ref 稳定化避免 effect 循环；core 新增 POST /dev/seed 种子数据。
+- [2026-08-11] M3-03 DONE | overview 2 用例全绿 | App shell（侧边导航 Lucide 图标）+ 四卡总览；零数据时空状态引导至接入向导（禁空洞文案）。
+- [2026-08-11] M3-04 DONE | injections 4 用例全绿 | SSE 实时行（无需 refetch）；token-bar 按块占比渲染；MD5 稳定指示器（全等→绿，变化→红）；会话过滤；core 新增 GET /injections/stream（EventBus 扇出 + since 重放 + 心跳）。
+- [2026-08-11] M3-05 DONE | memories 2 用例全绿 | service→space→agent 面包屑下钻；状态/pinned 过滤器；衰减分带半衰期 tooltip。
+- [2026-08-11] M3-06 DONE | memory-detail 3 用例全绿 | 血缘树（旧→新 + 来源消息）；编辑对话框 supersede 语义文案（AC-05 可视化）；pin/forget 确认后更新。
+- [2026-08-11] M3-07 DONE | traces 3 用例全绿 | 六阶段横向 stepper（SVG 连接线）+ 候选数；点击阶段展开候选列表；耗时展示。
+- [2026-08-11] M3-08 DONE | sessions 2 用例全绿 | 按日分组时间线；core 新增 GET /sessions/:id/diff（会话窗口内 added/updated/forgotten 三列）；空 diff 提示 mem:sync。
+- [2026-08-11] M3-09/10 DONE | profiles+assets 2 用例全绿 | L3 markdown + L2 token 预估表格；技能版本化列表（展开/收起）。
+- [2026-08-11] M3-11 DONE | capabilities 2 用例全绿 | core 新增 GET /capabilities（五能力状态机 off/configured/active + sidecar 未安装指引）；配置表单保存 PUT /config 热生效。
+- [2026-08-11] M3-12 DONE | settings 1 用例全绿 | core 新增 GET /onboard/status（AGENTMEMVIEW_HOME 可测）；衰减半衰期滑杆持久化；mempack 迁移指引。
+- [2026-08-11] M3-13 DONE | eval 2 用例全绿 | 空状态带数据集导入指引；报告表格渲染 fixture（M5 接通真实 harness）。
+- [2026-08-11] M3-14 DONE | static 5 用例全绿 | core 静态托管 ui/dist：GET / → index.html；无扩展名路由 SPA fallback；/assets/* 哈希文件 immutable 缓存；API 路径永不被遮蔽。
+
+## M3 里程碑门禁（DoD）— 2026-08-11 通过
+
+- [x] scan-rules.mjs 零命中（emoji/硬编码颜色/占位文案）
+- [x] 10 页面组件测试全绿（ui 11 文件 30 用例；关键交互编辑/下钻/回放/能力切换均有测试）
+- [x] `agentmemview start` 后 :8620 全页面可用（静态托管 + /dev/seed 种子数据）
+- [ ] SSE 端到端延迟 <500ms 人工验证（架构上 EventBus 直推无轮询，待真实浏览器确认）
+- [x] 浅色主题完整；深色 token 已定义（.dark 覆盖，页面适配 P1）
+- [x] PROGRESS.md 记录 M3-01 ~ M3-14
+
+偏差记录（M3）：(1) 未用 Tailwind 4 + shadcn，改用 tokens.css + 自研结构样式（降低构建风险，P0 纪律不变，偏差待 M5 前复议）；(2) 测试环境 jsdom 内存溢出改用 happy-dom + forks 池；(3) SSE hook 用 ref 稳定 factory 依赖（修复无限重渲染）；(4) 扫描器只查引号内容与 JSX 文本，不查 HTML placeholder 属性名。

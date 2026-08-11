@@ -2,11 +2,14 @@ import { Hono } from "hono";
 import type { AgentMemViewDatabase } from "../db/database.js";
 import { MockEmbeddingProvider } from "../embedding/mock.js";
 import type { EmbeddingProvider } from "../embedding/provider.js";
+import { EventBus } from "../events/bus.js";
 import { handleApiError } from "./errors.js";
 import { assetsRoutes } from "./routes/assets.js";
 import { auxRoutes } from "./routes/auxiliary.js";
+import { devRoutes } from "./routes/dev.js";
 import { l0Routes } from "./routes/l0.js";
 import { memoriesRoutes } from "./routes/memories.js";
+import { platformRoutes } from "./routes/platform.js";
 import { searchRoutes } from "./routes/search.js";
 import { sessionsRoutes } from "./routes/sessions.js";
 import { tenantsRoutes } from "./routes/tenants.js";
@@ -15,6 +18,7 @@ export interface HttpEnv {
   Variables: {
     db: AgentMemViewDatabase;
     provider: EmbeddingProvider;
+    bus: EventBus;
   };
 }
 
@@ -34,6 +38,7 @@ export function createHttpApp(
   options: HttpAppOptions = {},
 ): Hono<HttpEnv> {
   const provider = options.provider ?? new MockEmbeddingProvider();
+  const bus = new EventBus(db);
   const app = new Hono<HttpEnv>();
   app.onError((err, c) => {
     const mapped = handleApiError(err, c);
@@ -46,6 +51,7 @@ export function createHttpApp(
   app.use("*", async (c, next) => {
     c.set("db", db);
     c.set("provider", provider);
+    c.set("bus", bus);
     await next();
   });
   app.get("/api/v1/health", (c) => c.json({ ok: true }));
@@ -56,5 +62,7 @@ export function createHttpApp(
   app.route("/api/v1", auxRoutes);
   app.route("/api/v1", sessionsRoutes);
   app.route("/api/v1", assetsRoutes);
+  app.route("/api/v1", platformRoutes);
+  app.route("/api/v1", devRoutes);
   return app;
 }

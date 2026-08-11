@@ -178,6 +178,12 @@ paths:
       responses:
         "201":
           description: Recorded
+  /api/v1/injections/stream:
+    get:
+      operationId: streamInjections
+      responses:
+        "200":
+          description: SSE stream of injection records
   /api/v1/l0/messages:
     get:
       operationId: listL0Messages
@@ -203,6 +209,43 @@ paths:
           description: Existing session
         "201":
           description: Created session
+  /api/v1/sessions/{id}/diff:
+    get:
+      operationId: getSessionDiff
+      responses:
+        "200":
+          description: Memory diff for the session
+        "404":
+          description: Session not found
+  /api/v1/capabilities:
+    get:
+      operationId: listCapabilities
+      responses:
+        "200":
+          description: Capability states
+  /api/v1/config:
+    get:
+      operationId: getConfig
+      responses:
+        "200":
+          description: Runtime config map
+    put:
+      operationId: putConfig
+      responses:
+        "200":
+          description: Config saved (hot reload)
+  /api/v1/onboard/status:
+    get:
+      operationId: getOnboardStatus
+      responses:
+        "200":
+          description: Agent config detection results
+  /api/v1/dev/seed:
+    post:
+      operationId: seedDevData
+      responses:
+        "200":
+          description: Seed result
   /api/v1/profiles/{scope}:
     get:
       operationId: getProfile

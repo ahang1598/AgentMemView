@@ -1,0 +1,30 @@
+{
+  "name": "@agentmemview/ui",
+  "version": "0.1.0",
+  "description": "AgentMemView observability dashboard (10 pages, served by core at :8620)",
+  "type": "module",
+  "license": "MIT",
+  "scripts": {
+    "build": "vite build",
+    "dev": "vite",
+    "test": "vitest run",
+    "typecheck": "tsc -p tsconfig.json",
+    "scan": "node scripts/scan-rules.mjs"
+  },
+  "dependencies": {
+    "lucide-react": "^0.539.0",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "react-router-dom": "^7.8.0"
+  },
+  "devDependencies": {
+    "@testing-library/react": "^16.3.0",
+    "@types/react": "^19.1.0",
+    "@types/react-dom": "^19.1.0",
+    "@vitejs/plugin-react": "^5.0.0",
+    "happy-dom": "^18.0.1",
+    "typescript": "^5.6.3",
+    "vite": "^7.1.0",
+    "vitest": "^3.2.0"
+  }
+}

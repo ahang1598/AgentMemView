@@ -58,7 +58,75 @@ export const auxRoutes = new Hono<HttpEnv>()
       body.cachePrefixMd5,
       new Date().toISOString(),
     );
+    // real-time fan-out for the SSE stream (fail-open)
+    try {
+      c.get("bus").publish("injections.added", {
+        id,
+        sessionId: body.sessionId,
+        turn: body.turn,
+        blocks: body.blocks,
+        tokens: body.tokens,
+        cachePrefixMd5: body.cachePrefixMd5,
+        createdAt: new Date().toISOString(),
+      });
+    } catch {
+      // observation must never break the write path
+    }
     return c.json({ id }, 201);
+  })
+  .get("/injections/stream", (c) => {
+    const bus = c.get("bus");
+    const db = c.get("db");
+    const sinceRaw = c.req.query("since");
+    const since = sinceRaw !== undefined ? Number.parseInt(sinceRaw, 10) : 0;
+    const encoder = new TextEncoder();
+    let unsubscribe: (() => void) | undefined;
+    const stream = new ReadableStream<Uint8Array>({
+      start(controller) {
+        // replay missed events first (since = event bus id)
+        const missed = bus.replay(Number.isNaN(since) ? 0 : since);
+        for (const event of missed) {
+          if (event.kind !== "injections.added") {
+            continue;
+          }
+          controller.enqueue(
+            encoder.encode(`id: ${event.id}\ndata: ${JSON.stringify(event.payload)}\n\n`),
+          );
+        }
+        unsubscribe = bus.subscribe((event) => {
+          if (event.kind !== "injections.added") {
+            return;
+          }
+          try {
+            controller.enqueue(
+              encoder.encode(`id: ${event.id}\ndata: ${JSON.stringify(event.payload)}\n\n`),
+            );
+          } catch {
+            // client gone
+          }
+        });
+        // heartbeat keeps intermediaries from closing idle streams
+        const heartbeat = setInterval(() => {
+          try {
+            controller.enqueue(encoder.encode(": ping\n\n"));
+          } catch {
+            clearInterval(heartbeat);
+          }
+        }, 15_000);
+        void db; // db reserved for future scoped queries
+        void heartbeat;
+      },
+      cancel() {
+        unsubscribe?.();
+      },
+    });
+    return new Response(stream, {
+      headers: {
+        "content-type": "text/event-stream",
+        "cache-control": "no-cache",
+        connection: "keep-alive",
+      },
+    });
   })
   .get("/injections", (c) => {
     const db = c.get("db");

@@ -1,0 +1,53 @@
+/* AgentMemView design tokens — the single source of color truth.
+   P0 discipline: no hardcoded colors anywhere else (#fff/#000 excepted). */
+
+:root {
+  /* surfaces */
+  --bg-primary: #f7f8fa;
+  --bg-secondary: #ffffff;
+  --bg-tertiary: #eef0f4;
+  /* text */
+  --text-primary: #1a1d24;
+  --text-secondary: #5c6470;
+  --text-muted: #8a93a2;
+  /* lines */
+  --border: #dfe3ea;
+  --border-strong: #c6ccd6;
+  /* brand + state */
+  --accent: #2563eb;
+  --accent-soft: #e0eaff;
+  --success: #16a34a;
+  --success-soft: #dcf5e6;
+  --warning: #d97706;
+  --warning-soft: #fdeeda;
+  --danger: #dc2626;
+  --danger-soft: #fde3e3;
+  /* layout */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-6: 24px;
+  --font-mono: ui-monospace, "Cascadia Code", Consolas, monospace;
+}
+
+.dark {
+  --bg-primary: #101318;
+  --bg-secondary: #171b22;
+  --bg-tertiary: #1f242e;
+  --text-primary: #e8ebf0;
+  --text-secondary: #a7afbc;
+  --text-muted: #6d7684;
+  --border: #2a303b;
+  --border-strong: #3a4150;
+  --accent: #5b8cff;
+  --accent-soft: #1d2a4a;
+  --success: #34d178;
+  --success-soft: #123324;
+  --warning: #f0a13c;
+  --warning-soft: #3a2a10;
+  --danger: #f26d6d;
+  --danger-soft: #3d1717;
+}
