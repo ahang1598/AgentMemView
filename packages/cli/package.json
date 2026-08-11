@@ -21,6 +21,7 @@
   },
   "dependencies": {
     "@agentmemview/core": "workspace:*",
+    "@agentmemview/proxy": "workspace:*",
     "commander": "^12.1.0"
   },
   "devDependencies": {

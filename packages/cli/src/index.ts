@@ -1,5 +1,6 @@
 import { Command } from "commander";
 import { doctorAction } from "./commands/doctor.js";
+import { initAction } from "./commands/init.js";
 import { exportAction, importAction } from "./commands/mempack.js";
 import { startAction, stopAction } from "./commands/start.js";
 
@@ -12,6 +13,16 @@ export function createCli(): Command {
     .description("Run environment health checks (node, sqlite-vec, ports, storage)")
     .option("--json", "output a machine-readable JSON report")
     .action(doctorAction);
+
+  program
+    .command("init")
+    .description("Connect coding agents to the proxy (idempotent, backup/restore)")
+    .option("--agent <name>", "agent to configure (claude-code|codex|opencode)")
+    .option("--restore", "revert all changes made by init")
+    .option("--home <dir>", "target HOME directory (defaults to real home)")
+    .option("--space <spaceId>", "space id to wire", "default")
+    .option("--proxy-url <url>", "proxy base url", "http://127.0.0.1:8619")
+    .action(initAction);
 
   program
     .command("start")

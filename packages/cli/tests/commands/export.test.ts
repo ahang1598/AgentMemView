@@ -69,9 +69,7 @@ describe(".mempack export/import (AC-10 engine part)", () => {
     const target = openDatabase(targetDbPath);
     openDbs.push(target);
     migrate(target);
-    const rows = target
-      .prepare("SELECT content_hash FROM l1_facts")
-      .all() as Array<{
+    const rows = target.prepare("SELECT content_hash FROM l1_facts").all() as Array<{
       content_hash: string;
     }>;
     expect(rows.map((r) => r.content_hash).sort()).toEqual([...hashes].sort());

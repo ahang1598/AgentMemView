@@ -3,8 +3,12 @@ import type { AgentMemViewDatabase } from "../db/database.js";
 import { MockEmbeddingProvider } from "../embedding/mock.js";
 import type { EmbeddingProvider } from "../embedding/provider.js";
 import { handleApiError } from "./errors.js";
+import { assetsRoutes } from "./routes/assets.js";
+import { auxRoutes } from "./routes/auxiliary.js";
+import { l0Routes } from "./routes/l0.js";
 import { memoriesRoutes } from "./routes/memories.js";
 import { searchRoutes } from "./routes/search.js";
+import { sessionsRoutes } from "./routes/sessions.js";
 import { tenantsRoutes } from "./routes/tenants.js";
 
 export interface HttpEnv {
@@ -48,5 +52,9 @@ export function createHttpApp(
   app.route("/api/v1", tenantsRoutes);
   app.route("/api/v1", memoriesRoutes);
   app.route("/api/v1", searchRoutes);
+  app.route("/api/v1", l0Routes);
+  app.route("/api/v1", auxRoutes);
+  app.route("/api/v1", sessionsRoutes);
+  app.route("/api/v1", assetsRoutes);
   return app;
 }

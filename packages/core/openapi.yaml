@@ -1,0 +1,223 @@
+openapi: "3.0.3"
+info:
+  title: AgentMemView Core REST API
+  version: "1.0.0"
+  description: Core engine REST surface (Spec section 11). Locked for v1.
+servers:
+  - url: http://127.0.0.1:8620
+paths:
+  /api/v1/health:
+    get:
+      operationId: getHealth
+      responses:
+        "200":
+          description: Service healthy
+  /api/v1/services:
+    get:
+      operationId: listServices
+      responses:
+        "200":
+          description: Paged services
+    post:
+      operationId: createService
+      responses:
+        "201":
+          description: Created
+  /api/v1/services/{id}:
+    get:
+      operationId: getService
+      responses:
+        "200":
+          description: Service
+        "404":
+          description: Not found
+    patch:
+      operationId: patchService
+      responses:
+        "200":
+          description: Updated
+    delete:
+      operationId: deleteService
+      responses:
+        "204":
+          description: Deleted
+        "409":
+          description: Has children
+  /api/v1/spaces:
+    get:
+      operationId: listSpaces
+      responses:
+        "200":
+          description: Paged spaces
+    post:
+      operationId: createSpace
+      responses:
+        "201":
+          description: Created
+  /api/v1/spaces/{id}:
+    get:
+      operationId: getSpace
+      responses:
+        "200":
+          description: Space
+    patch:
+      operationId: patchSpace
+      responses:
+        "200":
+          description: Updated
+    delete:
+      operationId: deleteSpace
+      responses:
+        "204":
+          description: Deleted with force
+        "409":
+          description: Children present without force
+  /api/v1/agents:
+    get:
+      operationId: listAgents
+      responses:
+        "200":
+          description: Paged agents
+    post:
+      operationId: createAgent
+      responses:
+        "201":
+          description: Created
+  /api/v1/agents/{id}:
+    get:
+      operationId: getAgent
+      responses:
+        "200":
+          description: Agent
+    patch:
+      operationId: patchAgent
+      responses:
+        "200":
+          description: Updated
+    delete:
+      operationId: deleteAgent
+      responses:
+        "204":
+          description: Deleted
+  /api/v1/memories:
+    get:
+      operationId: listMemories
+      responses:
+        "200":
+          description: L1 facts of a space
+    post:
+      operationId: createMemory
+      responses:
+        "201":
+          description: Fact created (201 + id)
+  /api/v1/memories/{id}:
+    get:
+      operationId: getMemory
+      responses:
+        "200":
+          description: Fact
+        "404":
+          description: Not found
+    patch:
+      operationId: patchMemory
+      responses:
+        "200":
+          description: Superseding fact
+  /api/v1/memories/{id}/lineage:
+    get:
+      operationId: getMemoryLineage
+      responses:
+        "200":
+          description: Supersede chain
+  /api/v1/memories/{id}/pin:
+    post:
+      operationId: pinMemory
+      responses:
+        "200":
+          description: Pinned state
+  /api/v1/memories/{id}/recover:
+    post:
+      operationId: recoverMemory
+      responses:
+        "200":
+          description: Recovered fact
+  /api/v1/memories/forget:
+    post:
+      operationId: forgetMemories
+      responses:
+        "200":
+          description: Forgotten count
+  /api/v1/search:
+    post:
+      operationId: searchMemories
+      responses:
+        "200":
+          description: Results plus traceId
+  /api/v1/traces:
+    get:
+      operationId: listTraces
+      responses:
+        "200":
+          description: Recent traces
+  /api/v1/traces/{id}:
+    get:
+      operationId: getTrace
+      responses:
+        "200":
+          description: Six-stage trace
+        "404":
+          description: Not found
+  /api/v1/injections:
+    get:
+      operationId: listInjections
+      responses:
+        "200":
+          description: Recent injection records
+    post:
+      operationId: recordInjection
+      responses:
+        "201":
+          description: Recorded
+  /api/v1/l0/messages:
+    get:
+      operationId: listL0Messages
+      responses:
+        "200":
+          description: Raw messages
+    post:
+      operationId: appendL0Messages
+      responses:
+        "200":
+          description: Rows appended
+  /api/v1/sessions:
+    get:
+      operationId: listSessions
+      responses:
+        "200":
+          description: Recent sessions
+  /api/v1/sessions/ensure:
+    post:
+      operationId: ensureSession
+      responses:
+        "200":
+          description: Existing session
+        "201":
+          description: Created session
+  /api/v1/profiles/{scope}:
+    get:
+      operationId: getProfile
+      responses:
+        "200":
+          description: Latest profile version
+  /api/v1/scenarios:
+    get:
+      operationId: listScenarios
+      responses:
+        "200":
+          description: L2 index entries
+  /api/v1/skills:
+    get:
+      operationId: listSkills
+      responses:
+        "200":
+          description: Active skills

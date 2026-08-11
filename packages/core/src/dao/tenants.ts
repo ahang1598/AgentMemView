@@ -137,7 +137,10 @@ export class TenantsDao {
     };
   }
 
-  patchSpace(id: string, patch: { name?: string | undefined; metaJson?: string | undefined }): SpaceRow {
+  patchSpace(
+    id: string,
+    patch: { name?: string | undefined; metaJson?: string | undefined },
+  ): SpaceRow {
     this.getSpace(id);
     if (patch.name !== undefined) {
       this.db.prepare("UPDATE spaces SET name = ? WHERE id = ?").run(patch.name, id);
@@ -257,7 +260,10 @@ export class TenantsDao {
     };
   }
 
-  patchAgent(id: string, patch: { name?: string | undefined; kind?: string | undefined }): AgentRow {
+  patchAgent(
+    id: string,
+    patch: { name?: string | undefined; kind?: string | undefined },
+  ): AgentRow {
     this.getAgent(id);
     if (patch.name !== undefined) {
       this.db.prepare("UPDATE agents SET name = ? WHERE id = ?").run(patch.name, id);

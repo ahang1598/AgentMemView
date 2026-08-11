@@ -26,6 +26,10 @@ const memoryPatch = z.object({
   content: z.string().min(1).max(20_000),
 });
 
+const pinBody = z.object({
+  pinned: z.boolean().optional(),
+});
+
 const memoryListQuery = z.object({
   spaceId: z.string().min(1),
   includeAllStatuses: z.enum(["1", "true"]).optional(),
@@ -79,6 +83,28 @@ export const memoriesRoutes = new Hono<HttpEnv>()
     const located = locateFact(db, id);
     const dao = new FactsDao(db, scopeForSpace(db, located.spaceId));
     return c.json({ chain: dao.lineage(id) });
+  })
+  .get("/memories/:id", (c) => {
+    const db = c.get("db");
+    const { id } = c.req.param();
+    const located = locateFact(db, id);
+    const dao = new FactsDao(db, scopeForSpace(db, located.spaceId));
+    return c.json(dao.get(id));
+  })
+  .post("/memories/:id/pin", validate("json", pinBody), (c) => {
+    const db = c.get("db");
+    const { id } = c.req.param();
+    const located = locateFact(db, id);
+    const dao = new FactsDao(db, scopeForSpace(db, located.spaceId));
+    const pinned = c.req.valid("json").pinned ?? true;
+    return c.json(dao.pin(id, pinned));
+  })
+  .post("/memories/:id/recover", (c) => {
+    const db = c.get("db");
+    const { id } = c.req.param();
+    const located = locateFact(db, id);
+    const dao = new FactsDao(db, scopeForSpace(db, located.spaceId));
+    return c.json(dao.recover(id));
   });
 
 /** Minimal cross-space id lookup used only to route into the right scope. */

@@ -1,0 +1,58 @@
+{
+  "model": "claude-opus-4-7",
+  "max_tokens": 8192,
+  "stream": true,
+  "temperature": 1,
+  "thinking": { "type": "enabled", "budget_tokens": 4096 },
+  "metadata": { "user_id": "dev-machine" },
+  "system": [
+    {
+      "type": "text",
+      "text": "You are an expert coding assistant.",
+      "cache_control": { "type": "ephemeral" }
+    },
+    { "type": "text", "text": "Second system block without cache control." }
+  ],
+  "tools": [
+    {
+      "name": "read_file",
+      "description": "Read a file from disk",
+      "input_schema": {
+        "type": "object",
+        "properties": { "path": { "type": "string" } },
+        "required": ["path"]
+      },
+      "cache_control": { "type": "ephemeral" }
+    }
+  ],
+  "messages": [
+    { "role": "user", "content": "Help me refactor this function" },
+    {
+      "role": "assistant",
+      "content": [
+        {
+          "type": "thinking",
+          "thinking": "Let me inspect the file first.",
+          "signature": "sig-abc"
+        },
+        { "type": "text", "text": "I will read the file." },
+        {
+          "type": "tool_use",
+          "id": "toolu_01ABC",
+          "name": "read_file",
+          "input": { "path": "src/index.ts" }
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": [
+        {
+          "type": "tool_result",
+          "tool_use_id": "toolu_01ABC",
+          "content": "export function add(a: number, b: number) { return a + b; }"
+        }
+      ]
+    }
+  ]
+}

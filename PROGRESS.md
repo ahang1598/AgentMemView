@@ -58,3 +58,27 @@
 - [x] PROGRESS.md 记录 M1-01 ~ M1-09
 
 偏差记录（M1）：(1) trigram MATCH ≥3 码点，计划中 `MATCH "偏好"` 用例改为 4 字查询 + LIKE 降级断言；(2) hono 错误映射用 app.onError 而非中间件；(3) transformers.js 动态加载未声明依赖（M4 处理）；(4) memories 列表暂未实现游标分页（返回 nextCursor:null，M3 UI 需要时补）。
+
+- [2026-08-11] M2-01 DONE | proxy 测试全绿 | 路由解析（/{agent}/{spaceId}/v1/* + 裸路径）+ access key 认证（未配置时环回开放）+ main/sidequery/fork 分类启发式（metadata.user_id 含 sidequery 或 max_tokens≤50）。
+- [2026-08-11] M2-02 DONE | golden-file round-trip 全绿 | AgentContext IR + anthropic/openai 适配器；空注入槽时 serialize(parse(x)) 与原始 body 深度相等（tool_use/cache_control/thinking/tool_calls 逐字保真）；fixtures 按计划纪律构造（本地无法抓真实 agent 请求，fixture 按官方协议字段构造，已在偏差记录）。
+- [2026-08-11] M2-03 DONE | forward 4 用例全绿 | 头部策略（剥离 x-agentmemview-*/host/content-length，保留用户 x-api-key/authorization）；429/5xx 重试一次；AbortController 超时中断。
+- [2026-08-11] M2-04 DONE | SSE 4 用例全绿 | tee 字节保真 + 帧解析抽取 text/usage；openai data: 行解析 + include_usage 强制 + tool_call deltas 按 index 合并；缺字段 thinking 块消毒不崩溃；CRLF/跨 chunk 分帧鲁棒。
+- [2026-08-11] M2-05 DONE | 注入管线 5 用例全绿（AC-03） | 9 注入点落地为 systemPrefix/systemSuffix/toolsAppend 槽；固定注入 = L3 画像 + 技能清单 + L2 索引 + memory_search 指引；前缀 MD5 连续 10 轮全等；token 预算 2000 按优先级截断；sidequery/fork 完全跳过；L0/L1 永不自动注入（白名单 kind 断言）。
+- [2026-08-11] M2-06 DONE | 写回 6 用例全绿（AC-04） | fire-and-forget + 3 次退避重试 + 死信；脱敏前置；轮级归档纪律（tool_use 助手消息不触发）；SSE 写回改在流 flush 时执行（capture 完整后）；drain 排空供优雅停机。
+- [2026-08-11] M2-07 DONE | mem: 指令 6 用例全绿 | mem:remember/forget/status/sync 本地合成响应（anthropic+openai 双形），零上游调用；未知命令返回帮助文本；core 新增 POST /memories/forget 与 GET /injections 支撑。
+- [2026-08-11] M2-08 DONE | 限流 3 用例全绿 | 内存滑动窗口（key=spaceId:model，60s，默认 600qpm）；超限 429+retry-after；内部异常 fail-open 放行 + 告警回调。
+- [2026-08-11] M2-09 DONE | onboard 6 用例全绿 | claude-code(settings.json env)/codex(config.toml 保留用户内容)/opencode(json) 三适配器；幂等写入；冲突不覆盖只报告；.bak/.created 双标记备份，--restore 可逆（新建文件还原为删除）。CLI `agentmemview init [--agent|--restore|--home|--space|--proxy-url]`（偏差：非交互式标志代替交互确认）。
+- [2026-08-11] M2-10 DONE | golden case 回放 4 用例全绿 | mock 上游（流式/非流式/429 注入）+ serveHono 桥接 + waitFor 轮询；三个 golden case（简单问答/SSE 流/错误重试）+ mem:status 零上游调用。
+- [2026-08-11] M2-11 DONE | MCP 6 用例全绿 | 原生 JSON-RPC 实现（偏差：未用 @modelcontextprotocol/sdk，避免重依赖；协议面 initialize/tools/list/tools/call 兼容）；8 工具全走 core REST；memory_write/search 作用域隔离验证（AC-11）；stdio bin 就绪。
+- [2026-08-11] M2-12 DONE | openapi 一致性 1 用例 + E2E 全链路 1 用例全绿 | openapi.yaml 与路由表双向集合相等；E2E：core+proxy+mock 上游两轮对话（含 tool_use）→ 客户端响应 + injections≥2 行 + L0 用户/助手消息落库 + trace 六阶段齐全。
+
+## M2 里程碑门禁（DoD）— 2026-08-11 通过
+
+- [x] AC-03（10 轮 MD5 一致）、AC-04（重试/排空/不影响响应）测试全绿
+- [x] 录制回放 golden case + E2E 全绿（CI 无真实 LLM；proxy 44 用例）
+- [x] `agentmemview init --agent claude-code` 临时 HOME 幂等写入且可 --restore（onboard 6 用例覆盖）
+- [x] MCP 8 工具测试全绿；openapi.yaml 与路由一致性测试通过
+- [ ] 真实人工验证（本机 Claude Code 走代理）：待用户手动执行（需真实 ANTHROPIC_API_KEY，自动化无法覆盖），脚本见 M2 计划冒烟节
+- [x] PROGRESS.md 记录 M2-01 ~ M2-12
+
+偏差记录（M2）：(1) fixtures 按协议文档构造而非真实抓包（本地无 agent 运行环境）；(2) MCP 用原生 JSON-RPC 而非官方 SDK；(3) MCP HTTP 传输由 bin --http 预留而非挂载 core :8620/mcp（避免 core→mcp 循环依赖）；(4) init 非交互；(5) SSE 写回时机改为流 flush（修复 capture 为空的时序缺陷）。
