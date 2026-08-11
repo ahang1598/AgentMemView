@@ -1,0 +1,12 @@
+# Enforce LF in the repository regardless of Windows autocrlf,
+# keeping Biome/editorconfig line-ending gates stable cross-platform.
+* text=auto eol=lf
+
+# Binary assets stay untouched.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.woff binary
+*.woff2 binary
