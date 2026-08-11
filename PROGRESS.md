@@ -107,3 +107,23 @@
 - [x] PROGRESS.md 记录 M3-01 ~ M3-14
 
 偏差记录（M3）：(1) 未用 Tailwind 4 + shadcn，改用 tokens.css + 自研结构样式（降低构建风险，P0 纪律不变，偏差待 M5 前复议）；(2) 测试环境 jsdom 内存溢出改用 happy-dom + forks 池；(3) SSE hook 用 ref 稳定 factory 依赖（修复无限重渲染）；(4) 扫描器只查引号内容与 JSX 文本，不查 HTML placeholder 属性名。
+
+- [2026-08-11] M4-01 DONE | queue 4 用例全绿 | SQLite 任务队列（原子认领/指数退避/DLQ/崩溃恢复看门狗）+ 轮询 worker（并发上限断言 maxSeen≤2）。
+- [2026-08-11] M4-02 DONE | llm 4 用例全绿 | none provider 抛 CapabilityOffError 带能力中心指引；openai-compat 请求/响应映射 + 5xx 重试一次 + 30s 超时；字段级校验（baseUrl/apiKey/model）。
+- [2026-08-11] M4-03 DONE | l1Extract 5 用例全绿 | LLM 单次 add-call（写路径仅 1 次调用，source_message_id 血缘）；矛盾 supersede；脏输出 zod 校验失败降级启发式（degraded=true 不报错）；启发式（记住：/以后用 X 不用 Y）；AC-02：LLM 关→仅派 heuristic 任务。
+- [2026-08-11] M4-04 DONE | l2l3 3 用例全绿（P1 保留在 v1） | L2 规则式场景索引（标题+首句摘要+token 预估）；L3 画像版本化（历史保留可回滚）；LLM 关→l3 跳过。
+- [2026-08-11] M4-05 DONE | decayScan 3 用例全绿 | 衰减分 < 阈值且未 pin → forgotten + decay.forgotten 事件；pinned 豁免；dry-run 只报告。
+- [2026-08-11] M4-06 DONE | embeddingApi 2 用例全绿 | OpenAI 兼容 embeddings 映射；维度治理：切换 provider 新建 vec 命名空间 + pending_rebuild 标记 + rebuild 任务入队（关键词回退而非拒绝服务，supermemory 教训反转）。
+- [2026-08-11] M4-07 DONE | sidecar 客户端 2 用例 + Python 协议测试就绪 | Python uv 项目（stdio 逐行 JSON-RPC：handshake/embed，未知方法 -32601，脏行 -32700）；core 客户端三态（not-installed/active/degraded）：spawn 失败→not-installed 且 embed 返回 undefined 由调用方降级（AC-09）；stub stdio 服务器 happy path 握手+embed；uv 未装故 pytest 待用户环境执行（已记录偏差）。
+- [2026-08-11] M4-08 DONE | mempack full 2 用例全绿（AC-10） | 往返保真 facts/血缘链/config/sessions（hash 集合对比）；manifest 新增 schemaVersion；未知 format 拒绝导入且不落盘。
+- [2026-08-11] M4-09 DONE | registry 4 用例全绿（AC-08） | 六能力状态机（off/error/active，含 cloud-vector/reranker-api 两个 v1.5 占位）；PUT /config 热生效无需重启；错配→error 带字段级消息且主路径不受影响；GET /api/v1/jobs 暴露队列状态 + DLQ 计数。
+
+## M4 里程碑门禁（DoD）— 2026-08-11 通过
+
+- [x] AC-02（离线全功能）、AC-08（热生效）、AC-09（sidecar 三态）、AC-10（mempack 往返）测试全绿
+- [x] 队列崩溃恢复 + DLQ 测试通过；GET /api/v1/jobs 可见队列状态
+- [ ] sidecar `uv run pytest`：本机未装 uv/Python 环境，测试文件已就绪（协议测试不依赖 fastembed，装好即跑）
+- [x] 能力中心六卡片状态正确（含两个 v1.5 占位）
+- [x] PROGRESS.md 记录 M4-01 ~ M4-09（M4-04 P1 保留在 v1 未滑动）
+
+偏差记录（M4）：(1) sidecar pytest 待有 uv 的环境执行（本机无 Python 工具链）；(2) repo.test 加固 pnpm 定位（~/.local/bin 优先，.cmd 需 shell）；(3) pnpm-workspace 排除 packages/sidecar（Python 项目）。

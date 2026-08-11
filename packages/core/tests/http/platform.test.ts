@@ -55,7 +55,7 @@ describe("platform endpoints (M3)", () => {
     expect(config.decayHalfLifeDays).toBe(45);
   });
 
-  it("capabilities lists the locked five with state", async () => {
+  it("capabilities lists the locked six with state", async () => {
     const app = makeApp();
     const res = await app.request("/api/v1/capabilities");
     expect(res.status).toBe(200);
@@ -67,8 +67,9 @@ describe("platform endpoints (M3)", () => {
     expect(keys).toContain("embedding-api");
     expect(keys).toContain("local-embedding");
     expect(keys).toContain("sidecar");
-    expect(keys).toContain("reranker");
-    // configure llm-gateway → state flips to configured
+    expect(keys).toContain("cloud-vector");
+    expect(keys).toContain("reranker-api");
+    // configure llm-gateway → state flips to active (hot, no restart)
     await app.request("/api/v1/config", {
       method: "PUT",
       headers: { "content-type": "application/json" },
@@ -77,7 +78,7 @@ describe("platform endpoints (M3)", () => {
     const after = (await (await app.request("/api/v1/capabilities")).json()) as {
       items: Array<{ key: string; state: string }>;
     };
-    expect(after.items.find((i) => i.key === "llm-gateway")?.state).toBe("configured");
+    expect(after.items.find((i) => i.key === "llm-gateway")?.state).toBe("active");
   });
 
   it("onboard/status detects files in AGENTMEMVIEW_HOME", async () => {

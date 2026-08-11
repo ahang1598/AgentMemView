@@ -3,81 +3,28 @@ import { homedir } from "node:os";
 import path from "node:path";
 import { Hono } from "hono";
 import { z } from "zod";
-import { isLocalModelAvailable } from "../../embedding/local.js";
+import { buildCapabilities } from "../../capabilities/registry.js";
+import { JobQueue } from "../../jobs/queue.js";
 import type { HttpEnv } from "../app.js";
 import { validate } from "./validation.js";
 
 /**
- * Capability center + runtime config + onboarding detection (M3-11/12).
- * Capability state machine: off / configured / active / error.
+ * Capability center + runtime config + jobs + onboarding detection
+ * (M3-11/12, M4-09). Capability state machine: off / error / active.
  */
-
-function configGet(db: HttpEnv["Variables"]["db"], key: string): unknown {
-  const row = db.prepare("SELECT value_json FROM config WHERE key = ?").get(key) as
-    | { value_json: string }
-    | undefined;
-  if (row === undefined) {
-    return undefined;
-  }
-  try {
-    return JSON.parse(row.value_json);
-  } catch {
-    return undefined;
-  }
-}
 
 export const platformRoutes = new Hono<HttpEnv>()
   .get("/capabilities", async (c) => {
     const db = c.get("db");
-    const llmConfig = configGet(db, "capability.llm-gateway") as
-      | Record<string, unknown>
-      | undefined;
-    const embedConfig = configGet(db, "capability.embedding-api") as
-      | Record<string, unknown>
-      | undefined;
-    const localAvailable = await isLocalModelAvailable().catch(() => false);
-    const items = [
-      {
-        key: "llm-gateway",
-        title: "LLM 网关（OpenAI 兼容）",
-        state: llmConfig !== undefined ? "configured" : "off",
-        unlocks: "解锁 L1 事实精炼、L2 摘要、L3 画像自动更新",
-        requires: ["baseUrl", "apiKey", "model"],
-      },
-      {
-        key: "embedding-api",
-        title: "Embedding API",
-        state: embedConfig !== undefined ? "configured" : "off",
-        unlocks: "云端向量检索（替代本地 transformers.js）",
-        requires: ["baseUrl", "apiKey", "model"],
-      },
-      {
-        key: "local-embedding",
-        title: "本地 Embedding（transformers.js）",
-        state: localAvailable ? "active" : "off",
-        unlocks: "离线向量检索（multilingual-e5-small, 384 维）",
-        requires: [],
-        hint: localAvailable
-          ? undefined
-          : "未安装 @huggingface/transformers 或未缓存模型；设置 AGENTMEMVIEW_HF_ENDPOINT 可用镜像下载",
-      },
-      {
-        key: "sidecar",
-        title: "Python Sidecar",
-        state: "off",
-        unlocks: "embed/rerank/cluster/consolidate（v1 仅 embed）",
-        requires: [],
-        hint: "未安装：uv tool install agentmemview-sidecar",
-      },
-      {
-        key: "reranker",
-        title: "Reranker（v1.5 槽位）",
-        state: "off",
-        unlocks: "检索结果重排序（接口已预留）",
-        requires: [],
-      },
-    ];
+    const items = await buildCapabilities(db);
     return c.json({ items });
+  })
+  .get("/jobs", (c) => {
+    const db = c.get("db");
+    const queue = new JobQueue(db);
+    const items = queue.list();
+    const dlq = db.prepare("SELECT COUNT(*) AS n FROM jobs_dlq").get() as { n: number };
+    return c.json({ items, deadLetters: dlq.n });
   })
   .get("/config", (c) => {
     const db = c.get("db");

@@ -1,2 +1,4 @@
 packages:
   - "packages/*"
+  # sidecar 是 Python uv 项目，不属于 npm workspace
+  - "!packages/sidecar"

@@ -223,6 +223,12 @@ paths:
       responses:
         "200":
           description: Capability states
+  /api/v1/jobs:
+    get:
+      operationId: listJobs
+      responses:
+        "200":
+          description: Job queue state and dead-letter count
   /api/v1/config:
     get:
       operationId: getConfig

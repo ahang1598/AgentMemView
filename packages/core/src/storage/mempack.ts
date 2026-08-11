@@ -28,6 +28,8 @@ export interface EmbeddingTriple {
 
 export interface MempackManifest {
   format: typeof MEMPACK_FORMAT;
+  /** Latest schema migration included in the snapshot. */
+  schemaVersion: number;
   exportedAt: string;
   schemaVersions: string[];
   /** Active triple plus every vec_facts_* table found in the database. */
@@ -122,6 +124,7 @@ export async function exportMempack(
 
     const manifest: MempackManifest = {
       format: MEMPACK_FORMAT,
+      schemaVersion: schemaVersions.length,
       exportedAt: new Date().toISOString(),
       schemaVersions,
       embeddings,
