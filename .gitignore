@@ -1,1 +1,21 @@
-analyse/
+# Node
+node_modules/
+dist/
+coverage/
+*.tsbuildinfo
+
+# Turborepo
+.turbo/
+
+# SQLite data
+*.db
+*.db-shm
+*.db-wal
+
+# Env
+.env
+.env.local
+
+# OS
+.DS_Store
+Thumbs.db
