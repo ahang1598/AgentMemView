@@ -127,3 +127,41 @@
 - [x] PROGRESS.md 记录 M4-01 ~ M4-09（M4-04 P1 保留在 v1 未滑动）
 
 偏差记录（M4）：(1) sidecar pytest 待有 uv 的环境执行（本机无 Python 工具链）；(2) repo.test 加固 pnpm 定位（~/.local/bin 优先，.cmd 需 shell）；(3) pnpm-workspace 排除 packages/sidecar（Python 项目）。
+
+- [2026-08-11] M5-01 DONE | datasets 4 用例全绿 | LongMemEval-S JSONL 加载器（schema 校验 + 坏行带行号报错）；LoCoMo 加载器（qa pairs + evidence 指针）。
+- [2026-08-11] M5-02 DONE | drivers 2 用例全绿 | 摄入/检索驱动走 core REST；隔离租户（service=eval, space=<dataset>-<runId>）不污染用户数据；检索返回排序 id + traceId。
+- [2026-08-11] M5-03 DONE | metrics 3 用例全绿 | R@k/MRR 手算 fixture；judge 未配置时报告标注 judge: unavailable。
+- [2026-08-11] M5-04 DONE | report 1 + core eval 2 用例全绿 | 报告含 config 快照/指标/逐题分解/时间戳 + markdown 渲染；core 新增 POST /eval/run（走 M4 队列）与 GET /eval/reports。
+- [2026-08-11] M5-05 DONE（合成基线） | 合成评测集 R@5 ≥ 0.85 门禁持续绿（core tests/retrieval/eval.test.ts）；agentmemview-eval CLI 就绪（run --sample）；默认参数未触发调参序列。偏差：LongMemEval-S/LoCoMo 全量跑分需真实数据集下载环境（HF 镜像/网络），本机不可用，AC-12 全量报告待数据集环境补跑。
+- [2026-08-11] M5-06 DONE | theme 2 用例全绿 | 深色 token 覆盖全部颜色类变量；结构样式颜色全部 var(--token)；Dockerfile 多阶段（node:22-slim，构建→生产依赖，ENTRYPOINT agentmemview start，/data 卷）。偏差：docker build 人工验证待有 Docker 环境执行。
+- [2026-08-11] M5-07 DONE | README + getting-started + onboarding/claude-code + configuration + troubleshooting + architecture 六篇完成 | 无空洞文案；命令与代码库实际入口一致。
+- [2026-08-11] M5-08 DONE | release 3 用例全绿 | 版本三件套一致（cli/core/proxy）；发布文件清单不含 tests/fixtures；release workflow（tag 触发：门禁→npm publish→GitHub Release）。偏差：npm publish 需 NPM_TOKEN，待用户提供凭据后由 CI 执行。
+- [2026-08-11] M5-09 DONE | 全量回归见下表 | lint/typecheck/test/build 全绿（59 个测试文件）。
+
+## M5 里程碑门禁（DoD）— 2026-08-11 通过（含偏差）
+
+- [x] AC 验收表见下（自动化部分全勾；人工项标注）
+- [x] 合成基线报告入库（R@5 ≥ 0.85）；LongMemEval-S 全量报告待数据集环境（AC-12 偏差）
+- [x] 文档六篇完成；P0 扫描零命中
+- [ ] Docker 冒烟：待有 Docker 环境执行（Dockerfile 已就绪）
+- [ ] npm publish：待 NPM_TOKEN（release workflow 已就绪）
+- [x] PROGRESS.md 全里程碑闭环
+
+## AC-01 ~ AC-12 全量回归表（M5-09）
+
+| AC | 验证方式 | 结果 |
+|----|----------|------|
+| AC-01 | init+start 链路：cli start/doctor/health 测试 + 冒烟实测 :8620 health ok | ☑（自动化+本机冒烟；干净环境 npx 待 npm 发布） |
+| AC-02 | 离线全功能：无 LLM 配置下 search/memories/sessions 测试全绿 + heuristic-only 调度测试 | ☑ |
+| AC-03 | M2 注入稳定性：10 轮 MD5 全等测试 | ☑ |
+| AC-04 | M2 写回：重试/排空/不影响响应测试 | ☑ |
+| AC-05 | M1 血缘 supersede 测试 + memory-detail 页面测试 | ☑ |
+| AC-06 | M1 trace 六阶段测试 + traces 页面回放测试 | ☑ |
+| AC-07 | M1 脱敏 4 用例（openai/anthropic/github/aws + private 标签） | ☑ |
+| AC-08 | M4 热生效：PUT config → 能力 active 无需重启 | ☑ |
+| AC-09 | M4 sidecar 三态：not-installed 降级 + stub happy path | ☑ |
+| AC-10 | M4 mempack 往返（facts/血缘/config/sessions + 维度不匹配降级） | ☑ |
+| AC-11 | M1 scope 隔离（DAO/HTTP/引擎/MCP 四层） | ☑ |
+| AC-12 | 合成基线 R@5 ≥ 0.85 门禁绿；LongMemEval-S 全量待数据集环境 | ☑（合成）/ ☐（全量待补） |
+
+偏差记录（M5）：(1) LongMemEval-S/LoCoMo 全量跑分需数据集下载环境，本机不可用，已给出 agentmemview-eval 驱动与 CLI，具备环境即可跑；(2) Docker 冒烟与 npm publish 为人工/凭据项，产物（Dockerfile/release workflow）已就绪；(3) eval drivers 测试用 FetchApp 接口代替 Hono 泛型（规避类型不兼容）。

@@ -20,7 +20,7 @@ describe("LLM providers (M4-02)", () => {
   });
 
   it("openai-compat maps chat request/response", async () => {
-    const fetchImpl = vi.fn(async () => ({
+    const fetchMock = vi.fn(async (_input: string | URL | Request, _init?: RequestInit) => ({
       ok: true,
       status: 200,
       json: async () => ({
@@ -29,15 +29,15 @@ describe("LLM providers (M4-02)", () => {
         usage: { prompt_tokens: 10, completion_tokens: 5 },
       }),
       text: async () => "",
-    })) as unknown as typeof fetch;
+    }));
     const provider = new OpenAICompatLLMProvider(
       { baseUrl: "http://gateway", apiKey: "k", model: "gpt-5-mini" },
-      { fetchImpl },
+      { fetchImpl: fetchMock as unknown as typeof fetch },
     );
     const result = await provider.chat([{ role: "user", content: "extract" }]);
     expect(result.text).toBe('{"facts":[]}');
     expect(result.usage?.promptTokens).toBe(10);
-    const [url, init] = fetchImpl.mock.calls[0] ?? [];
+    const [url, init] = fetchMock.mock.calls[0] ?? [];
     expect(url).toBe("http://gateway/chat/completions");
     const body = JSON.parse(String(init?.body)) as Record<string, unknown>;
     expect(body.model).toBe("gpt-5-mini");
@@ -54,13 +54,13 @@ describe("LLM providers (M4-02)", () => {
 
   it("retries once on 5xx then surfaces the error", async () => {
     let calls = 0;
-    const fetchImpl = vi.fn(async () => {
+    const fetchMock = vi.fn(async (_input: string | URL | Request, _init?: RequestInit) => {
       calls += 1;
       return { ok: false, status: 500, json: async () => ({}), text: async () => "boom" };
-    }) as unknown as typeof fetch;
+    });
     const provider = new OpenAICompatLLMProvider(
       { baseUrl: "http://gateway", apiKey: "k", model: "m" },
-      { fetchImpl },
+      { fetchImpl: fetchMock as unknown as typeof fetch },
     );
     await expect(provider.chat([{ role: "user", content: "x" }])).rejects.toThrow(/500/);
     expect(calls).toBe(2);

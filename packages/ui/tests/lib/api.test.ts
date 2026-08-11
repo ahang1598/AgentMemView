@@ -27,7 +27,8 @@ describe("api client (M3-02)", () => {
 
   it("search posts scoped query", async () => {
     const fetchImpl = vi.fn(
-      async () => new Response(JSON.stringify({ results: [], traceId: "t-1" }), { status: 200 }),
+      async (_input: string | URL | Request, _init?: RequestInit) =>
+        new Response(JSON.stringify({ results: [], traceId: "t-1" }), { status: 200 }),
     );
     const client = new ApiClient({ fetchImpl });
     const out = await client.search("space-1", "包管理器");

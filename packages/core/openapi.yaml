@@ -223,6 +223,18 @@ paths:
       responses:
         "200":
           description: Capability states
+  /api/v1/eval/run:
+    post:
+      operationId: runEval
+      responses:
+        "201":
+          description: Eval run queued
+  /api/v1/eval/reports:
+    get:
+      operationId: listEvalReports
+      responses:
+        "200":
+          description: Persisted eval reports
   /api/v1/jobs:
     get:
       operationId: listJobs

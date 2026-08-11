@@ -31,7 +31,7 @@ afterEach(() => {
 
 describe("embedding API provider (M4-06)", () => {
   it("openai-compatible embed request/response mapped", async () => {
-    const fetchImpl = vi.fn(async () => ({
+    const fetchMock = vi.fn(async (_input: string | URL | Request, _init?: RequestInit) => ({
       ok: true,
       status: 200,
       json: async () => ({
@@ -40,15 +40,15 @@ describe("embedding API provider (M4-06)", () => {
           { index: 1, embedding: new Array(8).fill(0.2) },
         ],
       }),
-    })) as unknown as typeof fetch;
+    }));
     const provider = new ApiEmbeddingProvider(
       { baseUrl: "http://embed", apiKey: "k", model: "text-embed-3", dims: 8 },
-      { fetchImpl },
+      { fetchImpl: fetchMock as unknown as typeof fetch },
     );
     const vectors = await provider.embed(["a", "b"]);
     expect(vectors).toHaveLength(2);
     expect(vectors[0]).toHaveLength(8);
-    const [url, init] = fetchImpl.mock.calls[0] ?? [];
+    const [url, init] = fetchMock.mock.calls[0] ?? [];
     expect(url).toBe("http://embed/embeddings");
     const body = JSON.parse(String(init?.body)) as Record<string, unknown>;
     expect(body.model).toBe("text-embed-3");

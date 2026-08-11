@@ -7,6 +7,7 @@ import { handleApiError } from "./errors.js";
 import { assetsRoutes } from "./routes/assets.js";
 import { auxRoutes } from "./routes/auxiliary.js";
 import { devRoutes } from "./routes/dev.js";
+import { evalRoutes } from "./routes/eval.js";
 import { l0Routes } from "./routes/l0.js";
 import { memoriesRoutes } from "./routes/memories.js";
 import { platformRoutes } from "./routes/platform.js";
@@ -64,5 +65,6 @@ export function createHttpApp(
   app.route("/api/v1", assetsRoutes);
   app.route("/api/v1", platformRoutes);
   app.route("/api/v1", devRoutes);
+  app.route("/api/v1", evalRoutes);
   return app;
 }
