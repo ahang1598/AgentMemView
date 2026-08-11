@@ -27,6 +27,8 @@
 
 遗留事项（不阻塞 M1）：`pnpm test:coverage` 待 M1 前补 `@vitest/coverage-v8` 与包级脚本；远端仓库配置后验证 GitHub Actions 双平台 CI。
 
+合入记录：`feat/m0-scaffold` → `master`（82d16c0，fast-forward，36 文件 +2991）；合并后 checkout 的 autocrlf 曾将工作区转回 CRLF 导致 lint 失败，已新增 `memokit/.gitattributes`（`* text=auto eol=lf`）并全链复验通过（0d5eac3），后续提交不再受 Windows 换行影响。
+
 ## 任务记录（续）
 
 - [2026-08-11] M0-03 DONE | `pnpm test --filter @memokit/core` 全绿（4/4 config 用例） | 备注：(1) zod 4.4.3 的 `.default({})` 不会对默认值递归解析，section 级默认改用 `.prefault({})` 才能填充内层默认值；(2) 新增 `.editorconfig`（LF）+ `biome.json formatter.useEditorconfig`，根治 Windows CRLF 门禁失败；(3) logger 同步交付（pino JSON 行，`createLogger`）。
