@@ -3,6 +3,7 @@ import { createMemoryRouter, RouterProvider } from "react-router-dom";
 import { describe, expect, it, vi } from "vitest";
 import CapabilitiesPage from "../../src/pages/capabilities.js";
 import EvalPage from "../../src/pages/eval.js";
+import OptionalSettingsPage from "../../src/pages/optional-settings.js";
 import ProxySettingsPage from "../../src/pages/proxy-settings.js";
 import SettingsPage from "../../src/pages/settings.js";
 
@@ -97,11 +98,14 @@ describe("settings page (M3-12)", () => {
     render(<RouterProvider router={router} />);
   }
 
-  it("links out to the dedicated proxy settings page and keeps decay slider", async () => {
+  it("links out to the dedicated proxy and optional settings pages", async () => {
     renderSettings();
     const entry = await screen.findByTestId("proxy-entry-card");
     expect(entry.textContent).toContain("代理与接入");
     expect(screen.getByText("前往代理配置")).toBeTruthy();
+    const optional = await screen.findByTestId("optional-entry-card");
+    expect(optional.textContent).toContain("选配设置");
+    expect(screen.getByText("前往选配设置")).toBeTruthy();
     const decay = await screen.findByTestId("decay-card");
     expect(decay.textContent).toContain("30 天");
     fireEvent.click(screen.getByText("保存"));
@@ -109,25 +113,31 @@ describe("settings page (M3-12)", () => {
       expect(apiMock.putConfig).toHaveBeenCalledWith({ decayHalfLifeDays: 30 });
     });
   });
+});
 
-  it("unifies external service (capability) config on the settings page", async () => {
-    renderSettings();
+describe("optional settings page (external services)", () => {
+  function renderOptional(): void {
+    const router = createMemoryRouter([{ path: "/", element: <OptionalSettingsPage /> }]);
+    render(<RouterProvider router={router} />);
+  }
+
+  it("lists capabilities and saves config via PUT /config contract", async () => {
+    renderOptional();
     const section = await screen.findByTestId("external-services-card");
     expect(section.textContent).toContain("外部服务");
     expect(section.textContent).toContain("LLM 网关");
-    // configure from settings: same PUT contract as the capability center
     const configureButtons = screen.getAllByText("配置");
     fireEvent.click(configureButtons[0] as HTMLElement);
     const baseUrl = await screen.findByLabelText(/API 地址/);
     const apiKey = await screen.findByLabelText(/API Key/);
     expect(apiKey.getAttribute("type")).toBe("password");
-    fireEvent.change(baseUrl, { target: { value: "https://open.bigmodel.cn/api/paas/v4" } });
+    fireEvent.change(baseUrl, { target: { value: "https://open.bigmodel.cn/api/coding/paas/v4" } });
     fireEvent.change(apiKey, { target: { value: "sk-test" } });
     fireEvent.click(screen.getByText("保存并热生效"));
     await vi.waitFor(() => {
       expect(apiMock.putConfig).toHaveBeenCalledWith({
         "capability.llm-gateway": {
-          baseUrl: "https://open.bigmodel.cn/api/paas/v4",
+          baseUrl: "https://open.bigmodel.cn/api/coding/paas/v4",
           apiKey: "sk-test",
         },
       });

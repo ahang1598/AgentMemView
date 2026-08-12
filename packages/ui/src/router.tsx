@@ -6,6 +6,7 @@ import EvalPage from "./pages/eval.js";
 import InjectionsPage from "./pages/injections.js";
 import MemoriesPage from "./pages/memories.js";
 import MemoryDetailPage from "./pages/memory-detail.js";
+import OptionalSettingsPage from "./pages/optional-settings.js";
 import OverviewPage from "./pages/overview.js";
 import ProfilesPage from "./pages/profiles.js";
 import ProxySettingsPage from "./pages/proxy-settings.js";
@@ -62,6 +63,7 @@ export const router = createBrowserRouter([
       { path: "eval", element: <EvalPage /> },
       { path: "settings", element: <SettingsPage /> },
       { path: "settings/proxy", element: <ProxySettingsPage /> },
+      { path: "settings/optional", element: <OptionalSettingsPage /> },
       { path: "*", element: <NotFoundPage /> },
     ],
   },
