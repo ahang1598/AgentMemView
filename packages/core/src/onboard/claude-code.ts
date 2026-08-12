@@ -7,10 +7,12 @@ import {
   readJsonOrDefault,
   restoreFile,
 } from "./files.js";
-import type { OnboardAdapter, OnboardConfig, OnboardResult } from "./types.js";
+import type { ClaudeEnvOptions, OnboardAdapter, OnboardConfig, OnboardResult } from "./types.js";
 
 /**
- * Claude Code onboarding: ANTHROPIC_BASE_URL in ~/.claude/settings.json env.
+ * Claude Code onboarding: merges proxy env keys into ~/.claude/settings.json.
+ * Merge semantics — only the keys we manage are written; every other entry
+ * (user's token, model overrides, hooks, …) stays untouched.
  */
 
 function settingsPath(cfg: OnboardConfig): string {
@@ -23,6 +25,37 @@ function targetUrl(cfg: OnboardConfig): string {
 
 function serialize(settings: Record<string, unknown>): string {
   return JSON.stringify(settings, null, 2);
+}
+
+/** The exact env keys this adapter manages; undefined options are skipped. */
+function envOverrides(cfg: OnboardConfig): Record<string, unknown> {
+  const out: Record<string, unknown> = { ANTHROPIC_BASE_URL: targetUrl(cfg) };
+  const ce: ClaudeEnvOptions | undefined = cfg.claudeEnv;
+  if (ce !== undefined) {
+    if (ce.authToken !== undefined) {
+      out.ANTHROPIC_AUTH_TOKEN = ce.authToken;
+    }
+    if (ce.defaultHaikuModel !== undefined) {
+      out.ANTHROPIC_DEFAULT_HAIKU_MODEL = ce.defaultHaikuModel;
+    }
+    if (ce.defaultSonnetModel !== undefined) {
+      out.ANTHROPIC_DEFAULT_SONNET_MODEL = ce.defaultSonnetModel;
+    }
+    if (ce.defaultOpusModel !== undefined) {
+      out.ANTHROPIC_DEFAULT_OPUS_MODEL = ce.defaultOpusModel;
+    }
+    if (ce.autoCompactWindow !== undefined) {
+      out.CLAUDE_CODE_AUTO_COMPACT_WINDOW = ce.autoCompactWindow;
+    }
+    if (ce.disableNonessentialTraffic === true) {
+      // numeric 1, matching Claude Code's expected shape
+      out.CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC = 1;
+    }
+    if (ce.apiTimeoutMs !== undefined) {
+      out.API_TIMEOUT_MS = ce.apiTimeoutMs;
+    }
+  }
+  return out;
 }
 
 export const claudeCodeAdapter: OnboardAdapter = {
@@ -40,19 +73,23 @@ export const claudeCodeAdapter: OnboardAdapter = {
     const env = (settings.env ?? {}) as Record<string, unknown>;
     const existing = env.ANTHROPIC_BASE_URL;
     const url = targetUrl(cfg);
+    const overrides = envOverrides(cfg);
     if (typeof existing === "string" && existing !== url) {
       if (cfg.force !== true) {
         return {
           changed: false,
-          note: `conflict: ANTHROPIC_BASE_URL already set to ${existing}; re-run with --force to replace it (backup kept, --restore reverts), or set the proxy upstream to that URL`,
+          note: `conflict: ANTHROPIC_BASE_URL already set to ${existing}; re-run with force to replace it (backup kept, restore reverts), or set the proxy upstream to that URL`,
         };
       }
       // force: backup happens below (backupBeforeChange) before overwrite
     }
-    if (existing === url) {
+    // idempotent only when every managed key already matches (merge semantics)
+    const allMatch = Object.entries(overrides).every(([key, value]) => env[key] === value);
+    if (allMatch) {
       return { changed: false, note: "already configured" };
     }
-    const next: Record<string, unknown> = { ...settings, env: { ...env, ANTHROPIC_BASE_URL: url } };
+    // merge: keep all unrelated env entries byte-identical
+    const next: Record<string, unknown> = { ...settings, env: { ...env, ...overrides } };
     const nextContent = serialize(next);
     if (existsSync(file) && readFileSync(file, "utf8") === nextContent) {
       return { changed: false, note: "already configured" };
@@ -65,7 +102,9 @@ export const claudeCodeAdapter: OnboardAdapter = {
     writeFileSync(file, nextContent, "utf8");
     const replacedNote =
       typeof existing === "string" && existing !== url ? ` (replaced ${existing})` : "";
-    return { changed: true, note: `ANTHROPIC_BASE_URL -> ${url}${replacedNote}` };
+    const keysNote =
+      Object.keys(overrides).length > 1 ? ` +${Object.keys(overrides).length - 1} keys` : "";
+    return { changed: true, note: `ANTHROPIC_BASE_URL -> ${url}${keysNote}${replacedNote}` };
   },
 
   restore(cfg: OnboardConfig): void {

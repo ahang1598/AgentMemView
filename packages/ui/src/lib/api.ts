@@ -213,6 +213,17 @@ export class ApiClient {
     spaceId: string;
     force?: boolean | undefined;
     restore?: boolean | undefined;
+    claudeEnv?:
+      | {
+          authToken?: string | undefined;
+          defaultHaikuModel?: string | undefined;
+          defaultSonnetModel?: string | undefined;
+          defaultOpusModel?: string | undefined;
+          autoCompactWindow?: string | undefined;
+          disableNonessentialTraffic?: boolean | undefined;
+          apiTimeoutMs?: string | undefined;
+        }
+      | undefined;
   }): Promise<Record<string, unknown>> {
     return this.request("/api/v1/onboard/apply", {
       method: "POST",

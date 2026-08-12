@@ -8,6 +8,7 @@ import MemoriesPage from "./pages/memories.js";
 import MemoryDetailPage from "./pages/memory-detail.js";
 import OverviewPage from "./pages/overview.js";
 import ProfilesPage from "./pages/profiles.js";
+import ProxySettingsPage from "./pages/proxy-settings.js";
 import SessionsPage from "./pages/sessions.js";
 import SettingsPage from "./pages/settings.js";
 import TracesPage from "./pages/traces.js";
@@ -60,6 +61,7 @@ export const router = createBrowserRouter([
       { path: "capabilities", element: <CapabilitiesPage /> },
       { path: "eval", element: <EvalPage /> },
       { path: "settings", element: <SettingsPage /> },
+      { path: "settings/proxy", element: <ProxySettingsPage /> },
       { path: "*", element: <NotFoundPage /> },
     ],
   },

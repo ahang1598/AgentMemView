@@ -5,6 +5,7 @@ import {
   Database,
   GitBranch,
   Home,
+  Network,
   Route,
   Settings,
   SlidersHorizontal,
@@ -23,7 +24,8 @@ const NAV_ITEMS = [
   { to: "/assets", label: "技能与知识", icon: BookOpen },
   { to: "/capabilities", label: "能力中心", icon: SlidersHorizontal },
   { to: "/eval", label: "评测中心", icon: Target },
-  { to: "/settings", label: "设置", icon: Settings },
+  { to: "/settings", label: "设置", icon: Settings, end: true },
+  { to: "/settings/proxy", label: "代理配置", icon: Network },
 ];
 
 export default function App() {

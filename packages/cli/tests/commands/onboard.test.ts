@@ -74,6 +74,78 @@ describe("onboard adapters (M2-09)", () => {
     expect(JSON.stringify(restored)).toContain("open.bigmodel.cn");
   });
 
+  it("claude-code merges env keys without touching unrelated entries", () => {
+    const home = makeHome();
+    const settingsPath = path.join(home, ".claude", "settings.json");
+    mkdirSync(path.join(home, ".claude"), { recursive: true });
+    writeFileSync(
+      settingsPath,
+      JSON.stringify({
+        env: {
+          ANTHROPIC_AUTH_TOKEN: "keep-me",
+          SOME_OTHER_VAR: "untouched",
+        },
+        hooks: { PreToolUse: [{ matcher: "Bash" }] },
+      }),
+      "utf8",
+    );
+    const result = claudeCodeAdapter.install({
+      ...cfg(home),
+      claudeEnv: {
+        defaultHaikuModel: "glm-5.2[1m]",
+        defaultSonnetModel: "glm-5.2[1m]",
+        defaultOpusModel: "glm-5.2[1m]",
+        autoCompactWindow: "1000000",
+        disableNonessentialTraffic: true,
+        apiTimeoutMs: "3000000",
+      },
+    });
+    expect(result.changed).toBe(true);
+    const parsed = JSON.parse(readFileSync(settingsPath, "utf8")) as {
+      env: Record<string, unknown>;
+      hooks: unknown;
+    };
+    // managed keys written
+    expect(parsed.env.ANTHROPIC_BASE_URL).toBe("http://127.0.0.1:8619/claude-code/default");
+    expect(parsed.env.ANTHROPIC_DEFAULT_HAIKU_MODEL).toBe("glm-5.2[1m]");
+    expect(parsed.env.CLAUDE_CODE_AUTO_COMPACT_WINDOW).toBe("1000000");
+    expect(parsed.env.CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC).toBe(1); // numeric, not string
+    expect(parsed.env.API_TIMEOUT_MS).toBe("3000000");
+    // unrelated entries untouched
+    expect(parsed.env.ANTHROPIC_AUTH_TOKEN).toBe("keep-me");
+    expect(parsed.env.SOME_OTHER_VAR).toBe("untouched");
+    expect(parsed.hooks).toEqual({ PreToolUse: [{ matcher: "Bash" }] });
+    // idempotent: second run with same overrides changes nothing
+    const second = claudeCodeAdapter.install({
+      ...cfg(home),
+      claudeEnv: {
+        defaultHaikuModel: "glm-5.2[1m]",
+        defaultSonnetModel: "glm-5.2[1m]",
+        defaultOpusModel: "glm-5.2[1m]",
+        autoCompactWindow: "1000000",
+        disableNonessentialTraffic: true,
+        apiTimeoutMs: "3000000",
+      },
+    });
+    expect(second.changed).toBe(false);
+  });
+
+  it("claude-code updates managed keys later without clobbering others", () => {
+    const home = makeHome();
+    const settingsPath = path.join(home, ".claude", "settings.json");
+    mkdirSync(path.join(home, ".claude"), { recursive: true });
+    writeFileSync(settingsPath, JSON.stringify({ env: { ANTHROPIC_AUTH_TOKEN: "tok" } }), "utf8");
+    claudeCodeAdapter.install(cfg(home));
+    // later apply adds a model override; token must survive
+    claudeCodeAdapter.install({ ...cfg(home), claudeEnv: { defaultOpusModel: "glm-5.2[1m]" } });
+    const parsed = JSON.parse(readFileSync(settingsPath, "utf8")) as {
+      env: Record<string, unknown>;
+    };
+    expect(parsed.env.ANTHROPIC_AUTH_TOKEN).toBe("tok");
+    expect(parsed.env.ANTHROPIC_DEFAULT_OPUS_MODEL).toBe("glm-5.2[1m]");
+    expect(parsed.env.ANTHROPIC_BASE_URL).toBe("http://127.0.0.1:8619/claude-code/default");
+  });
+
   it("codex adapter edits config.toml preserving user content", () => {
     const home = makeHome();
     const tomlDir = path.join(home, ".codex");
