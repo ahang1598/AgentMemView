@@ -61,6 +61,20 @@ export const l0Routes = new Hono<HttpEnv>()
   .post("/l0/messages", validate("json", l0Body), (c) => {
     const body = c.req.valid("json");
     const db = c.get("db");
+    // FK guard: a bare/unknown session id would throw SQLITE_CONSTRAINT and
+    // spam the log; surface a clear 400 so callers (proxy) can fix it.
+    const session = db.prepare("SELECT id FROM sessions WHERE id = ?").get(body.sessionId) as
+      | { id: string }
+      | undefined;
+    if (session === undefined) {
+      return c.json(
+        {
+          error: "validation",
+          message: `session ${body.sessionId} not found; create it via POST /api/v1/sessions/ensure first`,
+        },
+        400,
+      );
+    }
     const dao = new L0Dao(db, new EventBus(db));
     const rows = dao.appendMessages(body.sessionId, body.messages);
     return c.json({ rows });

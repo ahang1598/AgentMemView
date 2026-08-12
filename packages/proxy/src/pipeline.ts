@@ -102,7 +102,11 @@ export class ProxyPipeline {
       .catch(() => undefined);
     let sessionId = externalId;
     if (space !== undefined) {
-      const agentId = await this.deps.core.firstAgentId(space.id).catch(() => undefined);
+      // ensureAgent creates the agent for fresh spaces; otherwise session
+      // ensure falls back to a bare external id and L0 write-back fails FK
+      const agentId = await this.deps.core
+        .ensureAgent(space.id, route.agent ?? "agent", route.agent ?? "agent")
+        .catch(() => undefined);
       if (agentId !== undefined) {
         sessionId =
           (await this.deps.core.ensureSession(agentId, externalId).catch(() => undefined)) ??

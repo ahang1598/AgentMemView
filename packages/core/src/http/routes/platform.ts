@@ -5,13 +5,27 @@ import { Hono } from "hono";
 import { z } from "zod";
 import { buildCapabilities } from "../../capabilities/registry.js";
 import { JobQueue } from "../../jobs/queue.js";
+import { claudeCodeAdapter } from "../../onboard/claude-code.js";
+import { codexAdapter } from "../../onboard/codex.js";
+import { opencodeAdapter } from "../../onboard/opencode.js";
+import type { OnboardAdapter, OnboardConfig } from "../../onboard/types.js";
 import type { HttpEnv } from "../app.js";
 import { validate } from "./validation.js";
 
 /**
- * Capability center + runtime config + jobs + onboarding detection
+ * Capability center + runtime config + jobs + onboarding detection/apply
  * (M3-11/12, M4-09). Capability state machine: off / error / active.
  */
+
+const ONBOARD_ADAPTERS: OnboardAdapter[] = [claudeCodeAdapter, codexAdapter, opencodeAdapter];
+
+const onboardApplyBody = z.object({
+  agent: z.string().min(1),
+  proxyBaseUrl: z.string().url().default("http://127.0.0.1:8619"),
+  spaceId: z.string().min(1).default("default"),
+  force: z.boolean().optional(),
+  restore: z.boolean().optional(),
+});
 
 export const platformRoutes = new Hono<HttpEnv>()
   .get("/capabilities", async (c) => {
@@ -72,5 +86,36 @@ export const platformRoutes = new Hono<HttpEnv>()
         detected: existsSync(check.file),
         note: existsSync(check.file) ? `检测到 ${check.file}` : `未找到 ${check.file}`,
       })),
+    });
+  })
+  .post("/onboard/apply", validate("json", onboardApplyBody), (c) => {
+    // Same adapters as `agentmemview init`, exposed for the Dashboard settings
+    // page so users can wire an agent to the proxy without a terminal.
+    const body = c.req.valid("json");
+    const adapter = ONBOARD_ADAPTERS.find((a) => a.name === body.agent);
+    if (adapter === undefined) {
+      return c.json(
+        {
+          error: "validation",
+          message: `unknown agent "${body.agent}"; supported: ${ONBOARD_ADAPTERS.map((a) => a.name).join(", ")}`,
+        },
+        400,
+      );
+    }
+    const cfg: OnboardConfig = {
+      homeDir: process.env.AGENTMEMVIEW_HOME ?? homedir(),
+      proxyBaseUrl: body.proxyBaseUrl,
+      spaceId: body.spaceId,
+      ...(body.force === true ? { force: true } : {}),
+    };
+    if (body.restore === true) {
+      adapter.restore(cfg);
+      return c.json({ agent: body.agent, restored: true });
+    }
+    const result = adapter.install(cfg);
+    return c.json({
+      agent: body.agent,
+      changed: result.changed,
+      ...(result.note !== undefined ? { note: result.note } : {}),
     });
   });

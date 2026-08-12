@@ -10,6 +10,10 @@
     ".": {
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
+    },
+    "./onboard/*": {
+      "types": "./dist/onboard/*.d.ts",
+      "default": "./dist/onboard/*.js"
     }
   },
   "files": [

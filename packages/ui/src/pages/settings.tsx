@@ -11,6 +11,12 @@ export default function SettingsPage() {
   const [agents, setAgents] = useState<OnboardAgent[]>([]);
   const [halfLife, setHalfLife] = useState(30);
   const [savedMessage, setSavedMessage] = useState<string | null>(null);
+  // manual proxy wiring (equivalent of `agentmemview init`)
+  const [onboardAgent, setOnboardAgent] = useState("claude-code");
+  const [proxyUrl, setProxyUrl] = useState("http://127.0.0.1:8619");
+  const [spaceId, setSpaceId] = useState("default");
+  const [forceOverwrite, setForceOverwrite] = useState(false);
+  const [onboardResult, setOnboardResult] = useState<string | null>(null);
 
   useEffect(() => {
     void api
@@ -28,6 +34,48 @@ export default function SettingsPage() {
   const saveDecay = async (): Promise<void> => {
     await api.putConfig({ decayHalfLifeDays: halfLife });
     setSavedMessage(`衰减半衰期已保存为 ${halfLife} 天（热生效）`);
+  };
+
+  const reloadOnboardStatus = (): void => {
+    void api
+      .getOnboardStatus()
+      .then((page) => setAgents(page.items as unknown as OnboardAgent[]))
+      .catch(() => setAgents([]));
+  };
+
+  const applyOnboard = async (): Promise<void> => {
+    try {
+      const res = await api.applyOnboard({
+        agent: onboardAgent,
+        proxyBaseUrl: proxyUrl,
+        spaceId,
+        ...(forceOverwrite ? { force: true } : {}),
+      });
+      const note = typeof res.note === "string" ? res.note : "";
+      setOnboardResult(
+        res.changed === true
+          ? `已接入：${note}`
+          : `未变更${note !== "" ? `：${note}` : ""}（若提示 conflict，勾选强制覆盖后重试）`,
+      );
+      reloadOnboardStatus();
+    } catch (err) {
+      setOnboardResult(`接入失败：${(err as Error).message}`);
+    }
+  };
+
+  const restoreOnboard = async (): Promise<void> => {
+    try {
+      await api.applyOnboard({
+        agent: onboardAgent,
+        proxyBaseUrl: proxyUrl,
+        spaceId,
+        restore: true,
+      });
+      setOnboardResult(`已还原 ${onboardAgent} 的原始配置（如有备份）`);
+      reloadOnboardStatus();
+    } catch (err) {
+      setOnboardResult(`还原失败：${(err as Error).message}`);
+    }
   };
 
   return (
@@ -71,6 +119,60 @@ export default function SettingsPage() {
             </tbody>
           </table>
         )}
+      </div>
+      <div className="card" data-testid="onboard-apply-card">
+        <h3>手动接入代理（写入 agent 配置）</h3>
+        <p className="muted">
+          等价于 CLI <code className="mono">agentmemview init</code>
+          ：把选中 agent 的 base-url 指向下面的代理地址。代理地址格式为{" "}
+          <code className="mono">http://127.0.0.1:8619</code>（代理监听地址，不带路径）； 空间名即{" "}
+          <code className="mono">&lt;spaceId&gt;</code>（默认 default）。写入前自动备份，可还原。
+        </p>
+        <div style={{ display: "grid", gap: 8, maxWidth: 560, marginTop: 8 }}>
+          <label htmlFor="onboard-agent">Agent</label>
+          <select
+            id="onboard-agent"
+            value={onboardAgent}
+            onChange={(e) => setOnboardAgent(e.target.value)}
+          >
+            <option value="claude-code">claude-code</option>
+            <option value="codex">codex</option>
+            <option value="opencode">opencode</option>
+          </select>
+          <label htmlFor="proxy-url">代理地址（proxy base url）</label>
+          <input
+            id="proxy-url"
+            type="text"
+            value={proxyUrl}
+            onChange={(e) => setProxyUrl(e.target.value)}
+            placeholder="http://127.0.0.1:8619"
+          />
+          <label htmlFor="space-id">空间名（spaceId）</label>
+          <input
+            id="space-id"
+            type="text"
+            value={spaceId}
+            onChange={(e) => setSpaceId(e.target.value)}
+            placeholder="default"
+          />
+          <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
+            <input
+              type="checkbox"
+              checked={forceOverwrite}
+              onChange={(e) => setForceOverwrite(e.target.checked)}
+            />
+            强制覆盖已有 base-url（conflict 时使用；备份保留）
+          </label>
+          <div style={{ display: "flex", gap: 8 }}>
+            <button type="button" className="btn btn-primary" onClick={() => void applyOnboard()}>
+              接入
+            </button>
+            <button type="button" className="btn" onClick={() => void restoreOnboard()}>
+              还原
+            </button>
+          </div>
+          {onboardResult !== null && <p className="muted">{onboardResult}</p>}
+        </div>
       </div>
       <div className="card" data-testid="decay-card">
         <h3>衰减参数</h3>

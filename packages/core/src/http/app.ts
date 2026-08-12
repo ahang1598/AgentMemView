@@ -56,6 +56,9 @@ export function createHttpApp(
     await next();
   });
   app.get("/api/v1/health", (c) => c.json({ ok: true }));
+  // root-level alias so `curl /health` and browser probes get JSON instead of
+  // the SPA shell (which renders a client-side 404 for non-route paths)
+  app.get("/health", (c) => c.json({ ok: true }));
   app.route("/api/v1", tenantsRoutes);
   app.route("/api/v1", memoriesRoutes);
   app.route("/api/v1", searchRoutes);

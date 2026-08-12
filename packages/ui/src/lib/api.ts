@@ -207,6 +207,20 @@ export class ApiClient {
     return this.request("/api/v1/onboard/status");
   }
 
+  applyOnboard(payload: {
+    agent: string;
+    proxyBaseUrl: string;
+    spaceId: string;
+    force?: boolean | undefined;
+    restore?: boolean | undefined;
+  }): Promise<Record<string, unknown>> {
+    return this.request("/api/v1/onboard/apply", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+  }
+
   getConfig(): Promise<Record<string, unknown>> {
     return this.request("/api/v1/config");
   }

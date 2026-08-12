@@ -185,4 +185,55 @@ describe("golden case replay (M2-10)", () => {
     expect(body.type).toBe("message");
     expect(upstream.captured).toHaveLength(0);
   });
+
+  it("fresh space without agents: proxy auto-creates agent and L0 write-back lands (FK regression)", async () => {
+    // new space, NO agent pre-created (the real-world first-run scenario that
+    // previously failed every L0 write with SQLITE_CONSTRAINT_FOREIGNKEY)
+    const svc = (await (
+      await fetch(`${coreServer.url}/api/v1/services`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ name: "fresh" }),
+      })
+    ).json()) as { id: string };
+    const fresh = (await (
+      await fetch(`${coreServer.url}/api/v1/spaces`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ serviceId: svc.id, name: "fresh-space" }),
+      })
+    ).json()) as { id: string };
+
+    upstream.enqueue({
+      body: JSON.stringify({
+        id: "msg_fresh",
+        type: "message",
+        role: "assistant",
+        content: [{ type: "text", text: "ok" }],
+      }),
+    });
+    const res = await proxy.request(`/claude-code/${fresh.id}/v1/messages`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        model: "claude-opus-4-7",
+        max_tokens: 100,
+        metadata: { session_id: "fresh-1" },
+        messages: [{ role: "user", content: "hello fresh" }],
+      }),
+    });
+    expect(res.status).toBe(200);
+    // agent was auto-created for the space
+    const agents = (await (
+      await fetch(`${coreServer.url}/api/v1/agents?spaceId=${fresh.id}`)
+    ).json()) as { items: unknown[] };
+    expect(agents.items.length).toBe(1);
+    // and the write-back landed instead of failing FK
+    const landed = await waitFor(async () =>
+      (await l0Items(coreServer.url)).some(
+        (i) => i.role === "user" && i.content.includes("hello fresh"),
+      ),
+    );
+    expect(landed).toBe(true);
+  });
 });
