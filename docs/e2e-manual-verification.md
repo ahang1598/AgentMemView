@@ -104,7 +104,23 @@ node packages/cli/bin/agentmemview.js init --agent claude-code --force
 
 说明：glm-5.2 仅 anthropic 协议端点可用（代理转发路径）；其 chat/completions 端点仍 429，故精炼能力（OpenAI 兼容）沿用 glm-4-flash（同密钥）。Claude Code 对未知模型的上下文窗口警告不影响功能。
 
+### 第三轮重跑（coding 端点修正，glm-5.2 双协议全通，2026-08-12 14:3x）
+
+用户提供端点规范：OpenAI 兼容接口用 `https://open.bigmodel.cn/api/coding/paas/v4`，anthropic 协议用 `https://open.bigmodel.cn/api/anthropic`。全新环境（amv-rerun2）重跑，精炼能力改为 coding 端点 + glm-5.2：
+
+| 用例 | 结果 | 证据 |
+|---|---|---|
+| T1 | ✅ | glm-5.2 经代理真实回复 V2-OK |
+| T2 | ✅ | claude -p 写入，L0 落库 17 条 |
+| T3 | ✅ | **glm-5.2（coding 端点）真实精炼**：队列 done×3、DLQ=0，产出 6 条 L1 事实（Rust / vim / Friday 部署） |
+| T4 | ✅ | 新会话正确回答三项偏好；注入记录 5 条 |
+| T5 | ✅ | mem:status → agentmemview_* 本地合成 |
+| T6 | ✅ | 全新目录首启自动 default 空间 |
+| T7 | ✅ | DLQ=0，无积压任务 |
+
+结论：至此 glm-5.2 同时承担对话转发（anthropic 端点）与 L1 精炼（coding/paas/v4 端点），全链路单一模型真实闭环。已知现象：同一会话多轮写回会产出近重复事实（尾句号差异绕过 5 分钟精确去重窗口），属后续优化项（归一化去重）。
+
 ## 5. 复测注意
 
-- 智谱免费配额对 `/api/paas/v4/chat/completions` 限流较严（T3 依赖该端点）；配额恢复后重跑 T3 即可，无需改代码。
+- 智谱端点规范（coding 套餐）：OpenAI 兼容用 `https://open.bigmodel.cn/api/coding/paas/v4`，anthropic 协议用 `https://open.bigmodel.cn/api/anthropic`；旧路径 `/api/paas/v4` 对套餐密钥限流（429）。
 - `claude -p` 的首个请求可能是无 prompt 的后台辅助请求，mem: 验证建议用 curl 直发（T5）。
