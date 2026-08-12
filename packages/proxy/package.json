@@ -4,6 +4,9 @@
   "description": "AgentMemView transparent proxy: dual-protocol adapter, injection pipeline, L0 write-back",
   "type": "module",
   "license": "MIT",
+  "bin": {
+    "agentmemview-proxy": "./bin/proxy.js"
+  },
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
@@ -17,6 +20,7 @@
     }
   },
   "files": [
+    "bin",
     "dist"
   ],
   "engines": {
@@ -29,6 +33,7 @@
   },
   "dependencies": {
     "@agentmemview/core": "workspace:*",
+    "@hono/node-server": "^1.14.0",
     "hono": "^4.13.1",
     "zod": "^4.0.0"
   },

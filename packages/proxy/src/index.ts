@@ -36,7 +36,14 @@ export {
   SlidingWindowLimiter,
 } from "./ratelimit/guard.js";
 export { type Protocol, type ProxyRoute, parseProxyRoute } from "./routing.js";
-export { createProxyApp, type ProxyOptions } from "./server.js";
+export {
+  createProxyApp,
+  type ProxyOptions,
+  type ProxyServerOptions,
+  type RunningProxy,
+  resolveUpstreams,
+  startProxyServer,
+} from "./server.js";
 export { type ForwardOptions, filterForwardHeaders, forwardRequest } from "./upstream/forward.js";
 export {
   type AnthropicCapture,
