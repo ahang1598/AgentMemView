@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import { z } from "zod";
 import { L0Dao } from "../../dao/l0.js";
 import { EventBus } from "../../events/bus.js";
+import { JobQueue } from "../../jobs/queue.js";
 import type { HttpEnv } from "../app.js";
 import { validate } from "./validation.js";
 
@@ -77,5 +78,35 @@ export const l0Routes = new Hono<HttpEnv>()
     }
     const dao = new L0Dao(db, new EventBus(db));
     const rows = dao.appendMessages(body.sessionId, body.messages);
+    // refinement trigger: schedule L1 extraction for this session (debounced
+    // by dedupe; the worker picks the strategy from hot config). Fail-open.
+    try {
+      const space = db
+        .prepare(
+          `SELECT sp.id AS space_id FROM sessions s
+           JOIN agents a ON a.id = s.agent_id
+           JOIN spaces sp ON sp.id = a.space_id
+           WHERE s.id = ?`,
+        )
+        .get(body.sessionId) as { space_id: string } | undefined;
+      if (space !== undefined) {
+        const queue = new JobQueue(db);
+        const dup = db
+          .prepare(
+            `SELECT id FROM jobs WHERE type = 'refine.l1'
+             AND status IN ('pending', 'running') AND payload_json LIKE ?`,
+          )
+          .get(`%"sessionId":"${body.sessionId}"%`) as { id: string } | undefined;
+        if (dup === undefined) {
+          queue.enqueue(
+            "refine.l1",
+            { sessionId: body.sessionId, spaceId: space.space_id, strategy: "llm" },
+            { runAfterMs: 5000 },
+          );
+        }
+      }
+    } catch {
+      // refinement is an enhancement; write-back must never fail because of it
+    }
     return c.json({ rows });
   });

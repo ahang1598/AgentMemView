@@ -102,10 +102,12 @@ export function createProxyApp(options: ProxyOptions): Hono {
     try {
       return await pipeline.process({ route, body, headers });
     } catch (err) {
-      return c.json(
-        { error: "bad_gateway", message: `proxy pipeline failed: ${(err as Error).message}` },
-        502,
-      );
+      const error = err as Error & { cause?: { message?: string; code?: string } };
+      const detail = [error.message, error.cause?.message, error.cause?.code]
+        .filter((part) => part !== undefined && part !== "")
+        .join(" | ");
+      console.error(`[proxy] pipeline failed: ${detail}`);
+      return c.json({ error: "bad_gateway", message: `proxy pipeline failed: ${detail}` }, 502);
     }
   });
 

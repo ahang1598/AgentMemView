@@ -54,7 +54,10 @@ export class OpenAICompatLLMProvider implements LLMProvider {
           signal: controller.signal,
         });
         if (!res.ok) {
-          throw new Error(`llm gateway responded ${res.status}`);
+          await res.arrayBuffer().catch(() => undefined);
+          const error = new Error(`llm gateway responded ${res.status}`);
+          (error as Error & { status?: number }).status = res.status;
+          throw error;
         }
         const parsed = (await res.json()) as {
           choices?: Array<{ message?: { content?: string } }>;
@@ -82,14 +85,25 @@ export class OpenAICompatLLMProvider implements LLMProvider {
         clearTimeout(timer);
       }
     };
-    try {
-      return await attempt();
-    } catch (err) {
-      // one retry for transient gateway failures
-      if ((err as Error).message.includes("5")) {
-        return attempt();
+    // retry transient failures (429 rate limit / 5xx) with backoff; gateways
+    // like Zhipu throttle bursty refine calls, so one fast retry is not enough
+    const maxAttempts = 3;
+    let lastError: Error | undefined;
+    for (let i = 0; i < maxAttempts; i += 1) {
+      try {
+        return await attempt();
+      } catch (err) {
+        lastError = err as Error;
+        const status = (err as Error & { status?: number }).status;
+        const retryable = status === 429 || (status !== undefined && status >= 500);
+        if (!retryable || i === maxAttempts - 1) {
+          throw err;
+        }
+        await new Promise((resolve) => {
+          setTimeout(resolve, 2000 * (i + 1));
+        });
       }
-      throw err;
     }
+    throw lastError ?? new Error("llm gateway request failed");
   }
 }
