@@ -67,7 +67,7 @@ export class LlmStrategy implements RefineStrategy {
       { role: "system", content: EXTRACT_PROMPT },
       { role: "user", content: transcript },
     ]);
-    const parsed = llmOutputSchema.safeParse(JSON.parse(result.text));
+    const parsed = llmOutputSchema.safeParse(parseLlmJson(result.text));
     if (!parsed.success) {
       throw new DegradedSignal(`llm output failed schema validation: ${parsed.error.message}`);
     }
@@ -85,6 +85,20 @@ export class DegradedSignal extends Error {
     super(message);
     this.name = "DegradedSignal";
   }
+}
+
+/**
+ * Small models (glm-4-flash etc.) wrap JSON in markdown fences or prepend
+ * prose; extract the JSON object before parsing.
+ */
+export function parseLlmJson(text: string): unknown {
+  const trimmed = text.trim();
+  const start = trimmed.indexOf("{");
+  const end = trimmed.lastIndexOf("}");
+  if (start === -1 || end <= start) {
+    throw new DegradedSignal("no JSON object found in llm output");
+  }
+  return JSON.parse(trimmed.slice(start, end + 1));
 }
 
 const REMEMBER_PATTERNS = [/^记住[：:]\s*(.+)$/s, /^remember[：:]\s*(.+)$/is];
