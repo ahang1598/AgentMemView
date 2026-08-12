@@ -8,6 +8,8 @@ export interface OnboardConfig {
   homeDir: string;
   proxyBaseUrl: string;
   spaceId: string;
+  /** Overwrite an existing conflicting base-url (backup kept for restore). */
+  force?: boolean | undefined;
 }
 
 export interface OnboardResult {

@@ -86,7 +86,7 @@ export class ApiClient {
 
   constructor(options: ApiClientOptions = {}) {
     this.#base = (options.baseUrl ?? "").replace(/\/$/, "");
-    this.#fetch = options.fetchImpl ?? fetch;
+    this.#fetch = options.fetchImpl ?? ((input, init) => fetch(input, init));
   }
 
   async request<T>(path: string, init?: RequestInit): Promise<T> {

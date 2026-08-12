@@ -17,6 +17,7 @@ export interface InitOptions {
   home?: string;
   space?: string;
   proxyUrl?: string;
+  force?: boolean;
 }
 
 export async function initAction(options: InitOptions = {}): Promise<void> {
@@ -24,6 +25,7 @@ export async function initAction(options: InitOptions = {}): Promise<void> {
     homeDir: options.home ?? homedir(),
     proxyBaseUrl: options.proxyUrl ?? "http://127.0.0.1:8619",
     spaceId: options.space ?? "default",
+    ...(options.force === true ? { force: true } : {}),
   };
   const selected =
     options.agent !== undefined ? ADAPTERS.filter((a) => a.name === options.agent) : ADAPTERS;

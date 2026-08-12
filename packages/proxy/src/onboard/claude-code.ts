@@ -41,10 +41,13 @@ export const claudeCodeAdapter: OnboardAdapter = {
     const existing = env.ANTHROPIC_BASE_URL;
     const url = targetUrl(cfg);
     if (typeof existing === "string" && existing !== url) {
-      return {
-        changed: false,
-        note: `conflict: ANTHROPIC_BASE_URL already set to ${existing}; update it manually`,
-      };
+      if (cfg.force !== true) {
+        return {
+          changed: false,
+          note: `conflict: ANTHROPIC_BASE_URL already set to ${existing}; re-run with --force to replace it (backup kept, --restore reverts), or set the proxy upstream to that URL`,
+        };
+      }
+      // force: backup happens below (backupBeforeChange) before overwrite
     }
     if (existing === url) {
       return { changed: false, note: "already configured" };
@@ -60,7 +63,9 @@ export const claudeCodeAdapter: OnboardAdapter = {
       markCreated(file);
     }
     writeFileSync(file, nextContent, "utf8");
-    return { changed: true, note: `ANTHROPIC_BASE_URL -> ${url}` };
+    const replacedNote =
+      typeof existing === "string" && existing !== url ? ` (replaced ${existing})` : "";
+    return { changed: true, note: `ANTHROPIC_BASE_URL -> ${url}${replacedNote}` };
   },
 
   restore(cfg: OnboardConfig): void {

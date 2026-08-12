@@ -26,11 +26,19 @@ curl http://127.0.0.1:8620/api/v1/health             # {"ok":true}
 ## 接入编码 agent
 
 ```bash
-node packages/cli/bin/agentmemview.js init --agent claude-code
-# 或 codex / opencode；--restore 可还原
+# 1) 启动透明代理（:8619），指定你的真实 LLM 网关作为上游
+node packages/cli/bin/agentmemview.js proxy start \
+  --anthropic-upstream https://open.bigmodel.cn/api/anthropic
+
+# 2) 把 agent 的 base-url 指向代理；--space 填空间名（默认 default）
+node packages/cli/bin/agentmemview.js init --agent claude-code --space default
+# 已配置过其他网关会报 conflict：加 --force 覆盖（自动备份，--restore 可还原）
 ```
 
-详见 `docs/onboarding/claude-code.md`。
+代理透传 API Key（x-api-key / Authorization），不代管密钥。
+
+- 完整逐步手册（含 `<spaceId>` 解释、上游优先级、排错表）：`docs/usage-manual.md`
+- 单项接入说明：`docs/onboarding/claude-code.md`
 
 ## 能力表
 
@@ -48,7 +56,7 @@ node packages/cli/bin/agentmemview.js init --agent claude-code
 - `packages/mcp` — MCP server（8 工具，stdio）
 - `packages/ui` — Dashboard（React 19，10 页面）
 - `packages/eval` — 评测 harness（LongMemEval-S/LoCoMo 加载器 + R@k/MRR）
-- `packages/cli` — CLI（init/start/stop/export/import/doctor）
+- `packages/cli` — CLI（init/start/stop/proxy/export/import/doctor）
 - `packages/sidecar` — Python uv 项目（JSON-RPC stdio）
 
 ## 开发

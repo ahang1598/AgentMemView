@@ -4,6 +4,7 @@
 
 ## 任务记录
 
+- [2026-08-12] 修复批次（fix/onboarding-and-proxy-start）DONE | lint/typecheck/test/build 全绿 | 用户反馈三问题：(1) `init` 冲突 → 新增 `--force` 覆盖（备份保留，`--restore` 可还原），提示文案引导化，cli onboard 测试覆盖 force+restore；(2) :8620 空白页 → 根因 main.tsx 直渲 `<App/>` 未挂 Router（useLocation 报错）+ api.ts fetch 丢 Window 绑定（Illegal invocation），分别改为 `RouterProvider` 与闭包 fetch，新增 app-boot 回归测试，浏览器实测侧边栏/空状态正常；(3) 代理无法启动 → proxy 新增 `startProxyServer`+`agentmemview-proxy` bin，CLI 新增 `proxy start/stop`（`--anthropic-upstream`/`--openai-upstream`/`-d`/`--port`），上游按协议解析（参数>专属 env>Agent env 防回环>默认值），API Key 透传不代管，新增 upstream/startProxyServer 测试；另新增 `docs/usage-manual.md` 完整接入手册并重写 README 接入章节；端到端实测：proxy 启动打印上游指向、/health 200、Dashboard 渲染正常。
 - [2026-08-11] M0-01 DONE | `pnpm install && pnpm lint && pnpm typecheck && pnpm build && pnpm test` 全绿 | 备注：(1) pnpm 9.15.9 via corepack（用户级安装，`~/.local/bin`）；(2) better-sqlite3 prebuilt 首次拉取超时，已通过 `.npmrc` 加大 fetch-timeout 解决，未走源码编译；(3) 计划中 `pnpm ls --depth -1` 实测需加 `-r` 才能列出 workspace 包，测试已按实际行为修正（见 `packages/core/tests/meta/repo.test.ts` 注释）；(4) Biome 2.x 配置：ignore 目录不带 `/**` 后缀、`rules.preset` 取代 `recommended`；(5) 全部包 ESM（`"type": "module"`，NodeNext）。
 
 - [2026-08-11] M0-02 DONE | 人工验证清单：`pnpm install --frozen-lockfile` 本地通过；`.github/workflows/ci.yml` 已建（node 22 + pnpm 9 缓存，ubuntu/windows 双平台矩阵，lint→typecheck→test 三门禁） | 备注：当前 git 仓库无远端，"推送后 CI 绿"待远端配置后验证；workflow 按 Spec 置于 AgentMemView/ 内，若 agentmemview 不独立成仓库需移至实际仓库根。

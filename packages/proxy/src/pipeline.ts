@@ -21,7 +21,8 @@ export interface PipelineDeps {
   core: CoreClient;
   l0: L0Client;
   limiter: SlidingWindowLimiter;
-  upstreamBase: string;
+  /** Per-protocol upstream bases (real LLM gateways). */
+  upstreams: { anthropic: string; openai: string };
   defaultSpaceName: string;
 }
 
@@ -58,7 +59,9 @@ function lastUserText(body: Record<string, unknown>): string {
 }
 
 function upstreamUrl(deps: PipelineDeps, route: ProxyRoute): string {
-  const base = deps.upstreamBase.replace(/\/$/, "");
+  const base = (
+    route.protocol === "anthropic" ? deps.upstreams.anthropic : deps.upstreams.openai
+  ).replace(/\/$/, "");
   return route.protocol === "anthropic" ? `${base}/v1/messages` : `${base}/v1/chat/completions`;
 }
 

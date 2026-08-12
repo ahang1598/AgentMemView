@@ -54,6 +54,26 @@ describe("onboard adapters (M2-09)", () => {
     expect(result.note).toContain("conflict");
   });
 
+  it("claude-code --force replaces a conflicting base url (backup kept)", () => {
+    const home = makeHome();
+    const settingsPath = path.join(home, ".claude", "settings.json");
+    mkdirSync(path.join(home, ".claude"), { recursive: true });
+    writeFileSync(
+      settingsPath,
+      JSON.stringify({ env: { ANTHROPIC_BASE_URL: "https://open.bigmodel.cn/api/anthropic" } }),
+      "utf8",
+    );
+    const result = claudeCodeAdapter.install({ ...cfg(home), force: true });
+    expect(result.changed).toBe(true);
+    expect(result.note).toContain("replaced https://open.bigmodel.cn/api/anthropic");
+    const parsed = JSON.parse(readFileSync(settingsPath, "utf8")) as Record<string, unknown>;
+    expect(JSON.stringify(parsed)).toContain("http://127.0.0.1:8619/claude-code/default");
+    // restore reverts to the original gateway url
+    claudeCodeAdapter.restore(cfg(home));
+    const restored = JSON.parse(readFileSync(settingsPath, "utf8")) as Record<string, unknown>;
+    expect(JSON.stringify(restored)).toContain("open.bigmodel.cn");
+  });
+
   it("codex adapter edits config.toml preserving user content", () => {
     const home = makeHome();
     const tomlDir = path.join(home, ".codex");
