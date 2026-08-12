@@ -38,7 +38,7 @@ describe("capabilities page (M3-11)", () => {
     render(<CapabilitiesPage />);
     const list = await screen.findByTestId("capability-list");
     expect(list.textContent).toContain("LLM 网关");
-    expect(list.textContent).toContain("off");
+    expect(list.textContent).toContain("未配置");
     expect(list.textContent).toContain("baseUrl");
     expect(list.textContent).toContain("uv tool install agentmemview-sidecar");
   });
@@ -47,13 +47,25 @@ describe("capabilities page (M3-11)", () => {
     render(<CapabilitiesPage />);
     const configureButtons = await screen.findAllByText("配置");
     fireEvent.click(configureButtons[0] as HTMLElement);
-    const input = await screen.findByLabelText("baseUrl");
+    const input = await screen.findByLabelText(/API 地址/);
     fireEvent.change(input, { target: { value: "http://gateway" } });
     fireEvent.click(screen.getByText("保存并热生效"));
     await vi.waitFor(() => {
-      expect(apiMock.putConfig).toHaveBeenCalled();
+      expect(apiMock.putConfig).toHaveBeenCalledWith({
+        "capability.llm-gateway": { baseUrl: "http://gateway" },
+      });
     });
     expect(await screen.findByTestId("save-result")).toBeTruthy();
+  });
+
+  it("clear-and-disable saves null to turn the capability off", async () => {
+    render(<CapabilitiesPage />);
+    const configureButtons = await screen.findAllByText("配置");
+    fireEvent.click(configureButtons[0] as HTMLElement);
+    fireEvent.click(screen.getByText("清空并停用"));
+    await vi.waitFor(() => {
+      expect(apiMock.putConfig).toHaveBeenCalledWith({ "capability.llm-gateway": null });
+    });
   });
 });
 
@@ -87,6 +99,30 @@ describe("settings page (M3-12)", () => {
     fireEvent.click(screen.getByText("保存"));
     await vi.waitFor(() => {
       expect(apiMock.putConfig).toHaveBeenCalledWith({ decayHalfLifeDays: 30 });
+    });
+  });
+
+  it("unifies external service (capability) config on the settings page", async () => {
+    render(<SettingsPage />);
+    const section = await screen.findByTestId("external-services-card");
+    expect(section.textContent).toContain("外部服务");
+    expect(section.textContent).toContain("LLM 网关");
+    // configure from settings: same PUT contract as the capability center
+    const configureButtons = screen.getAllByText("配置");
+    fireEvent.click(configureButtons[0] as HTMLElement);
+    const baseUrl = await screen.findByLabelText(/API 地址/);
+    const apiKey = await screen.findByLabelText(/API Key/);
+    expect(apiKey.getAttribute("type")).toBe("password");
+    fireEvent.change(baseUrl, { target: { value: "https://open.bigmodel.cn/api/paas/v4" } });
+    fireEvent.change(apiKey, { target: { value: "sk-test" } });
+    fireEvent.click(screen.getByText("保存并热生效"));
+    await vi.waitFor(() => {
+      expect(apiMock.putConfig).toHaveBeenCalledWith({
+        "capability.llm-gateway": {
+          baseUrl: "https://open.bigmodel.cn/api/paas/v4",
+          apiKey: "sk-test",
+        },
+      });
     });
   });
 });
