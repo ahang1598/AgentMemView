@@ -25,6 +25,19 @@ const onboardApplyBody = z.object({
   spaceId: z.string().min(1).default("default"),
   force: z.boolean().optional(),
   restore: z.boolean().optional(),
+  // claude-code only: extra env keys merged into settings.json (never a
+  // full-file overwrite; unrelated entries stay untouched)
+  claudeEnv: z
+    .object({
+      authToken: z.string().optional(),
+      defaultHaikuModel: z.string().optional(),
+      defaultSonnetModel: z.string().optional(),
+      defaultOpusModel: z.string().optional(),
+      autoCompactWindow: z.string().optional(),
+      disableNonessentialTraffic: z.boolean().optional(),
+      apiTimeoutMs: z.string().optional(),
+    })
+    .optional(),
 });
 
 export const platformRoutes = new Hono<HttpEnv>()
@@ -107,6 +120,7 @@ export const platformRoutes = new Hono<HttpEnv>()
       proxyBaseUrl: body.proxyBaseUrl,
       spaceId: body.spaceId,
       ...(body.force === true ? { force: true } : {}),
+      ...(body.claudeEnv !== undefined ? { claudeEnv: body.claudeEnv } : {}),
     };
     if (body.restore === true) {
       adapter.restore(cfg);

@@ -32,32 +32,6 @@ export interface PipelineInput {
   headers: Record<string, string>;
 }
 
-function lastUserText(body: Record<string, unknown>): string {
-  const messages = body.messages;
-  if (!Array.isArray(messages)) {
-    return "";
-  }
-  for (let i = messages.length - 1; i >= 0; i -= 1) {
-    const message = messages[i] as { role?: unknown; content?: unknown } | undefined;
-    if (message?.role !== "user") {
-      continue;
-    }
-    if (typeof message.content === "string") {
-      return message.content;
-    }
-    if (Array.isArray(message.content)) {
-      return message.content
-        .filter(
-          (b): b is { type: string; text: string } =>
-            b !== null && typeof b === "object" && (b as { type?: unknown }).type === "text",
-        )
-        .map((b) => b.text)
-        .join("\n");
-    }
-  }
-  return "";
-}
-
 /**
  * Locate a mem: command across ALL user messages (newest first, plain text
  * only). Claude Code appends tool_result blocks as later user messages, so
@@ -124,7 +98,6 @@ export class ProxyPipeline {
     // mem: commands short-circuit locally (zero upstream tokens); scan all
     // user messages because agent frameworks append tool_result turns after
     // the original prompt
-    const userText = lastUserText(body);
     const memCommandText = findMemCommandText(body);
     if (memCommandText !== undefined) {
       const memResponse = await this.runMemCommand(route, ctx.model, memCommandText);
