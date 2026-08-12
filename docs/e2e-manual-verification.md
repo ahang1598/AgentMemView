@@ -64,7 +64,7 @@ node packages/cli/bin/agentmemview.js init --agent claude-code --force
 |---|---|---|
 | T1 | ✅ | 代理 200，`REPLY=PROXY-OK`（智谱 glm-4.6 真实生成） |
 | T2 | ✅ | `claude -p` 回答正常；L0 落库 45+ 条（含工具调用轮次），user/assistant 齐全 |
-| T3 | ⚠️ 管线已接通，LLM 调用被智谱 429 配额阻塞 | 任务入队→worker 认领→3 次退避重试→DLQ（last_error="llm gateway responded 429"，直连最小请求同样 429，证实为账户配额）；启发式策略全链路已由 refine-wiring 回归测试证明（事实成功产出） |
+| T3 | ✅（重试后） | 首次被智谱付费模型配额 429 阻塞；切 glm-4-flash 后真实产出 L1 事实（见下方补充） |
 | T4 | ✅ | `claude -p "我最喜欢的语言？"` 正确回答 Rust+vim；`GET /injections` 12 条 memory-guide 块记录 |
 | T5 | ✅ | curl `mem:status` 返回 `id=agentmemview_*` 本地合成响应（零上游 token） |
 | T6 | ✅ | 全新目录启动即有 default 空间 |
@@ -79,6 +79,14 @@ node packages/cli/bin/agentmemview.js init --agent claude-code --force
 5. **mem: 指令在真实 Agent 下失效**：Claude Code 把 tool_result 追加为更靠后的 user 消息 → 改为扫描全部 user 消息定位 mem: 前缀。
 6. **429 重试不足**：provider 只对 5xx 重试一次 → 429/5xx 三次退避重试。
 7. **502 无诊断**：代理错误不透传 cause → 502 携带 cause message/code 并打日志。
+8. **小模型输出 markdown fence**：glm-4-flash 把 JSON 包在 ```json 代码块里，JSON.parse 失败静默降级启发式 → `parseLlmJson` 提取首个 JSON 对象（含回归测试）。
+
+### T3 重试记录（glm-4-flash，2026-08-12 14:0x）
+
+- 发现：智谱账户对付费模型（glm-4.5/4.6/4.7/5.2）的 chat/completions 全部 429，免费 glm-4-flash 200；将 `capability.llm-gateway.model` 切为 glm-4-flash。
+- 第一轮仍无事实 → 直测抽取 prompt 发现 flash 输出被 ```json fence 包裹 → 修复 parseLlmJson。
+- 重跑 `claude -p "Please remember two facts: ..."` → 任务队列消化（done，无新增 DLQ），`GET /memories` 真实产出 L1 事实：`My team uses pnpm workspaces`、`We deploy on Fridays`（LLM 抽取，非启发式）。
+- 结论：T1→T4 全链路真实闭环（Claude Code → 代理 → 智谱 → 写回 → LLM 精炼 → L1 事实）。
 
 ## 5. 复测注意
 

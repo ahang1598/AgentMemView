@@ -9,7 +9,12 @@ import { migrate } from "../../src/db/migrator.js";
 import { JobQueue } from "../../src/jobs/queue.js";
 import { scheduleSessionRefine } from "../../src/jobs/scheduler.js";
 import type { LLMProvider } from "../../src/providers/llm/types.js";
-import { HeuristicStrategy, LlmStrategy, runL1Extract } from "../../src/refine/l1Extract.js";
+import {
+  HeuristicStrategy,
+  LlmStrategy,
+  parseLlmJson,
+  runL1Extract,
+} from "../../src/refine/l1Extract.js";
 import type { Scope } from "../../src/scope/context.js";
 
 const tempDirs: string[] = [];
@@ -62,6 +67,13 @@ function fakeLLM(responseText: string): LLMProvider & { calls: number } {
 }
 
 describe("L1 refinement (M4-03)", () => {
+  it("parseLlmJson strips markdown fences and surrounding prose", () => {
+    const fenced = '```json\n{"facts":[{"action":"ADD","content":"x"}]}\n```';
+    expect(parseLlmJson(fenced)).toEqual({ facts: [{ action: "ADD", content: "x" }] });
+    expect(parseLlmJson('here you go: {"facts":[]}')).toEqual({ facts: [] });
+    expect(() => parseLlmJson("no json at all")).toThrow(/no JSON object/);
+  });
+
   it("llm path: single add-call inserts facts with lineage to l0", async () => {
     const { db, scope, sessionId } = makeFixture();
     // seed l0 messages
