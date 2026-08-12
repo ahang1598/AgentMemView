@@ -6,6 +6,7 @@ import {
   GitBranch,
   Home,
   Network,
+  PackagePlus,
   Route,
   Settings,
   SlidersHorizontal,
@@ -26,6 +27,7 @@ const NAV_ITEMS = [
   { to: "/eval", label: "评测中心", icon: Target },
   { to: "/settings", label: "设置", icon: Settings, end: true },
   { to: "/settings/proxy", label: "代理配置", icon: Network },
+  { to: "/settings/optional", label: "选配设置", icon: PackagePlus },
 ];
 
 export default function App() {

@@ -33,7 +33,7 @@ export default function CapabilitiesPage() {
       <h2 className="page-title">能力中心</h2>
       <p className="muted">
         未开启任何能力时系统全功能离线可用；开启后解锁对应增强能力（热生效，无需重启）。
-        同样的配置已统一到「设置 → 外部服务」，两处保存等价。
+        配置表单已统一到「选配设置」页，两处保存等价。
       </p>
       {saved !== null && (
         <div className="card" data-testid="save-result">
