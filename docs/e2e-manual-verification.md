@@ -88,6 +88,22 @@ node packages/cli/bin/agentmemview.js init --agent claude-code --force
 - 重跑 `claude -p "Please remember two facts: ..."` → 任务队列消化（done，无新增 DLQ），`GET /memories` 真实产出 L1 事实：`My team uses pnpm workspaces`、`We deploy on Fridays`（LLM 抽取，非启发式）。
 - 结论：T1→T4 全链路真实闭环（Claude Code → 代理 → 智谱 → 写回 → LLM 精炼 → L1 事实）。
 
+### 完整重跑记录（glm-config.txt 密钥 + glm-5.2，2026-08-12 14:1x）
+
+按用户提供的 glm-config.txt（密钥 + anthropic 端点 + glm-5.2）全新环境重跑（数据目录 amv-rerun）：
+
+| 用例 | 结果 | 证据 |
+|---|---|---|
+| T1 | ✅ | curl 经代理 + glm-config 密钥，glm-5.2 真实回复 RERUN-OK |
+| T2 | ✅ | claude -p 写入（Claude 配置同步换为 glm-config 密钥+glm-5.2），L0 落库 8 条 |
+| T3 | ✅ | 队列 done×2，DLQ=0；LLM 真实抽取 3 条 L1 事实（Rust / vim 键位 / Friday 部署） |
+| T4 | ✅ | 新会话 claude -p 正确回答三项偏好；注入记录 3 条 |
+| T5 | ✅ | curl mem:status → id=agentmemview_* 本地合成 |
+| T6 | ✅ | 全新目录首启自动 default 空间 |
+| T7 | ✅ | 本轮无新增 DLQ（历史 429 已归因账户配额） |
+
+说明：glm-5.2 仅 anthropic 协议端点可用（代理转发路径）；其 chat/completions 端点仍 429，故精炼能力（OpenAI 兼容）沿用 glm-4-flash（同密钥）。Claude Code 对未知模型的上下文窗口警告不影响功能。
+
 ## 5. 复测注意
 
 - 智谱免费配额对 `/api/paas/v4/chat/completions` 限流较严（T3 依赖该端点）；配额恢复后重跑 T3 即可，无需改代码。
