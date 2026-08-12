@@ -36,6 +36,28 @@ function now(): string {
   return new Date().toISOString();
 }
 
+/**
+ * First-run bootstrap: guarantee a default service + "default" space exist.
+ * Without it a fresh install has no space, so the proxy silently degrades
+ * (no session, no injection, no L0 write-back). Idempotent.
+ */
+export function bootstrapDefaultTenants(db: AgentMemViewDatabase): { spaceId: string } {
+  const dao = new TenantsDao(db);
+  const services = dao.listServices({ limit: 1 });
+  const firstService = services.items[0];
+  const serviceId =
+    firstService !== undefined ? firstService.id : dao.createService({ name: "local" }).id;
+  const spaceCount = db.prepare("SELECT COUNT(*) AS n FROM spaces").get() as { n: number };
+  if (spaceCount.n === 0) {
+    const space = dao.createSpace({ serviceId, name: "default" });
+    return { spaceId: space.id };
+  }
+  const first = db.prepare("SELECT id FROM spaces ORDER BY rowid LIMIT 1").get() as {
+    id: string;
+  };
+  return { spaceId: first.id };
+}
+
 export class TenantsDao {
   constructor(private readonly db: AgentMemViewDatabase) {}
 

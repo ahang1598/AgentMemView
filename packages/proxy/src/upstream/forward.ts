@@ -29,6 +29,10 @@ const STRIPPED_HEADERS = new Set([
   "keep-alive",
   "transfer-encoding",
   "upgrade",
+  // expect (e.g. PowerShell's "100-continue") is rejected by undici fetch
+  // (UND_ERR_NOT_SUPPORTED); te is hop-by-hop and equally unsupported
+  "expect",
+  "te",
 ]);
 
 export function filterForwardHeaders(headers: Record<string, string>): Record<string, string> {
@@ -76,7 +80,20 @@ export async function forwardRequest(options: ForwardOptions): Promise<Response>
   if (retryStatuses.includes(first.status)) {
     // drain the failed response body before retrying
     await first.arrayBuffer().catch(() => undefined);
-    return attempt();
+    return stripEncodingHeaders(await attempt());
   }
-  return first;
+  return stripEncodingHeaders(first);
+}
+
+/**
+ * fetch auto-decompresses gzip/br bodies, but the upstream's
+ * content-encoding/content-length headers pass through untouched — clients
+ * then try to decompress an already-decoded body and fail. Rebuild the
+ * response without those headers.
+ */
+function stripEncodingHeaders(res: Response): Response {
+  const headers = new Headers(res.headers);
+  headers.delete("content-encoding");
+  headers.delete("content-length");
+  return new Response(res.body, { status: res.status, statusText: res.statusText, headers });
 }

@@ -58,6 +58,40 @@ function lastUserText(body: Record<string, unknown>): string {
   return "";
 }
 
+/**
+ * Locate a mem: command across ALL user messages (newest first, plain text
+ * only). Claude Code appends tool_result blocks as later user messages, so
+ * the original prompt is often not the last user message.
+ */
+function findMemCommandText(body: Record<string, unknown>): string | undefined {
+  const messages = body.messages;
+  if (!Array.isArray(messages)) {
+    return undefined;
+  }
+  for (let i = messages.length - 1; i >= 0; i -= 1) {
+    const message = messages[i] as { role?: unknown; content?: unknown } | undefined;
+    if (message?.role !== "user") {
+      continue;
+    }
+    let text = "";
+    if (typeof message.content === "string") {
+      text = message.content;
+    } else if (Array.isArray(message.content)) {
+      text = message.content
+        .filter(
+          (b): b is { type: string; text: string } =>
+            b !== null && typeof b === "object" && (b as { type?: unknown }).type === "text",
+        )
+        .map((b) => b.text)
+        .join("\n");
+    }
+    if (text.trimStart().startsWith("mem:")) {
+      return text;
+    }
+  }
+  return undefined;
+}
+
 function upstreamUrl(deps: PipelineDeps, route: ProxyRoute): string {
   const base = (
     route.protocol === "anthropic" ? deps.upstreams.anthropic : deps.upstreams.openai
@@ -87,10 +121,13 @@ export class ProxyPipeline {
     const ctx: AgentContext = adapter.parse(body);
     const externalId = this.extractExternalId(body);
 
-    // mem: commands short-circuit locally (zero upstream tokens)
+    // mem: commands short-circuit locally (zero upstream tokens); scan all
+    // user messages because agent frameworks append tool_result turns after
+    // the original prompt
     const userText = lastUserText(body);
-    if (userText.trimStart().startsWith("mem:")) {
-      const memResponse = await this.runMemCommand(route, ctx.model, userText);
+    const memCommandText = findMemCommandText(body);
+    if (memCommandText !== undefined) {
+      const memResponse = await this.runMemCommand(route, ctx.model, memCommandText);
       if (memResponse !== undefined) {
         return memResponse;
       }

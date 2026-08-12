@@ -52,17 +52,36 @@ describe("LLM providers (M4-02)", () => {
     expect(validateLLMConfig({ baseUrl: "http://x", apiKey: "k", model: "m" })).toEqual([]);
   });
 
-  it("retries once on 5xx then surfaces the error", async () => {
-    let calls = 0;
-    const fetchMock = vi.fn(async (_input: string | URL | Request, _init?: RequestInit) => {
-      calls += 1;
-      return { ok: false, status: 500, json: async () => ({}), text: async () => "boom" };
-    });
-    const provider = new OpenAICompatLLMProvider(
-      { baseUrl: "http://gateway", apiKey: "k", model: "m" },
-      { fetchImpl: fetchMock as unknown as typeof fetch },
-    );
-    await expect(provider.chat([{ role: "user", content: "x" }])).rejects.toThrow(/500/);
-    expect(calls).toBe(2);
+  it("retries with backoff on 5xx/429 then surfaces the error", async () => {
+    vi.useFakeTimers();
+    try {
+      let calls = 0;
+      const fetchMock = vi.fn(async (_input: string | URL | Request, _init?: RequestInit) => {
+        calls += 1;
+        return {
+          ok: false,
+          status: 500,
+          json: async () => ({}),
+          text: async () => "boom",
+          arrayBuffer: async () => new ArrayBuffer(0),
+        };
+      });
+      const provider = new OpenAICompatLLMProvider(
+        { baseUrl: "http://gateway", apiKey: "k", model: "m" },
+        { fetchImpl: fetchMock as unknown as typeof fetch },
+      );
+      const pending = provider.chat([{ role: "user", content: "x" }]);
+      // drive the backoff sleeps (2s + 4s)
+      const driver = (async () => {
+        for (let i = 0; i < 8; i += 1) {
+          await vi.advanceTimersByTimeAsync(3000);
+        }
+      })();
+      await expect(pending).rejects.toThrow(/500/);
+      await driver;
+      expect(calls).toBe(3);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
