@@ -12,6 +12,12 @@ paths:
       responses:
         "200":
           description: Service healthy
+  /health:
+    get:
+      operationId: getHealthAlias
+      responses:
+        "200":
+          description: Root-level health alias (same payload as /api/v1/health)
   /api/v1/services:
     get:
       operationId: listServices
@@ -258,6 +264,12 @@ paths:
       responses:
         "200":
           description: Agent config detection results
+  /api/v1/onboard/apply:
+    post:
+      operationId: applyOnboard
+      responses:
+        "200":
+          description: Agent wired to proxy (or conflict reported; force overwrites, restore reverts)
   /api/v1/dev/seed:
     post:
       operationId: seedDevData

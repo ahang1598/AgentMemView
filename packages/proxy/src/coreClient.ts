@@ -65,6 +65,33 @@ export class CoreClient {
     return body.items?.[0]?.id;
   }
 
+  /**
+   * Return the space's first agent, creating one when the space is fresh.
+   * Without this, session ensure silently falls back to a bare external id
+   * and every L0 write-back fails the sessions FK constraint.
+   */
+  async ensureAgent(spaceId: string, kind: string, name: string): Promise<string | undefined> {
+    const existing = await this.firstAgentId(spaceId).catch(() => undefined);
+    if (existing !== undefined) {
+      return existing;
+    }
+    try {
+      const res = await fetch(`${this.#base}/api/v1/agents`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ spaceId, kind, name }),
+      });
+      if (!res.ok) {
+        await res.arrayBuffer().catch(() => undefined);
+        return undefined;
+      }
+      const body = (await res.json()) as { id?: string };
+      return body.id;
+    } catch {
+      return undefined;
+    }
+  }
+
   async ensureSession(agentId: string, externalId: string): Promise<string | undefined> {
     const res = await fetch(`${this.#base}/api/v1/sessions/ensure`, {
       method: "POST",

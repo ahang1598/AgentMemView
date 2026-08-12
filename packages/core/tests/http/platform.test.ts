@@ -105,6 +105,80 @@ describe("platform endpoints (M3)", () => {
     }
   });
 
+  it("onboard/apply writes the agent config (conflict → force → restore)", async () => {
+    const home = mkdtempSync(path.join(tmpdir(), "agentmemview-home-apply-"));
+    tempDirs.push(home);
+    mkdirSync(path.join(home, ".claude"), { recursive: true });
+    const settingsFile = path.join(home, ".claude", "settings.json");
+    writeFileSync(
+      settingsFile,
+      JSON.stringify({ env: { ANTHROPIC_BASE_URL: "https://open.bigmodel.cn/api/anthropic" } }),
+      "utf8",
+    );
+    const previous = process.env.AGENTMEMVIEW_HOME;
+    process.env.AGENTMEMVIEW_HOME = home;
+    try {
+      const app = makeApp();
+      const post = (payload: Record<string, unknown>): Promise<Response> =>
+        Promise.resolve(
+          app.request("/api/v1/onboard/apply", {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify(payload),
+          }),
+        );
+      // conflict without force
+      const conflict = await post({ agent: "claude-code" });
+      expect(conflict.status).toBe(200);
+      const conflictBody = (await conflict.json()) as { changed: boolean; note?: string };
+      expect(conflictBody.changed).toBe(false);
+      expect(conflictBody.note).toContain("conflict");
+      // force overwrites
+      const forced = await post({ agent: "claude-code", force: true });
+      const forcedBody = (await forced.json()) as { changed: boolean; note?: string };
+      expect(forcedBody.changed).toBe(true);
+      expect(forcedBody.note).toContain("8619/claude-code/default");
+      // unknown agent rejected
+      const bad = await post({ agent: "nope" });
+      expect(bad.status).toBe(400);
+      // restore reverts to the original gateway url
+      const restored = await post({ agent: "claude-code", restore: true });
+      expect(((await restored.json()) as { restored: boolean }).restored).toBe(true);
+      expect(JSON.parse((await import("node:fs")).readFileSync(settingsFile, "utf8"))).toEqual({
+        env: { ANTHROPIC_BASE_URL: "https://open.bigmodel.cn/api/anthropic" },
+      });
+    } finally {
+      if (previous === undefined) {
+        delete process.env.AGENTMEMVIEW_HOME;
+      } else {
+        process.env.AGENTMEMVIEW_HOME = previous;
+      }
+    }
+  });
+
+  it("root /health alias returns JSON (not the SPA shell)", async () => {
+    const app = makeApp();
+    const res = await app.request("/health");
+    expect(res.status).toBe(200);
+    expect(res.headers.get("content-type")).toContain("application/json");
+    expect(await res.json()).toEqual({ ok: true });
+  });
+
+  it("l0 write-back with an unknown session returns 400 (FK guard)", async () => {
+    const app = makeApp();
+    const res = await app.request("/api/v1/l0/messages", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        sessionId: "does-not-exist",
+        messages: [{ turn: 0, role: "user", content: "hi" }],
+      }),
+    });
+    expect(res.status).toBe(400);
+    const body = (await res.json()) as { message: string };
+    expect(body.message).toContain("sessions/ensure");
+  });
+
   it("session diff buckets facts created in the session window", async () => {
     const app = makeApp();
     await app.request("/api/v1/dev/seed", { method: "POST" });
